@@ -1,0 +1,28 @@
+fastapi
+uvicorn[standard]
+gunicorn
+pydantic
+pydantic-settings
+python-multipart
+
+# PDF parsing
+pdfplumber
+pymupdf
+
+# Azure Storage (Blob + Table)
+azure-storage-blob
+azure-data-tables
+
+# Azure OpenAI (structured-output generation, /generate)
+openai>=1.40
+
+# PDF export (GET /articles/{article_id}/pdf) — pure Python, no native system libraries, so it
+# works on Azure App Service's standard Python Linux runtime as-is (see app/pdf_export.py and
+# decision-log.md — weasyprint would have needed Pango/Cairo/GDK-Pixbuf, not available there)
+reportlab
+
+# Structured logging / observability — ships every existing logging.getLogger() call
+# (generation.py, storage.py, pdf_export.py, main.py) plus auto-captured per-request
+# latency/status and outbound Azure OpenAI/Storage call timing to Application Insights.
+# No code beyond app/main.py's configure_azure_monitor() call — see decision-log.md.
+azure-monitor-opentelemetry

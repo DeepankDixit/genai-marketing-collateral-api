@@ -1,0 +1,5 @@
+# Dev-only tooling — NOT installed on Azure App Service (kept out of
+# requirements.txt so the deployed app doesn't carry notebook/dev weight).
+-r requirements.txt
+jupyter
+ipykernel

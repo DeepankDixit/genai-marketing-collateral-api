@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GenAI Marketing Collateral — Demo</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --muted: #6b7280;
+    --border: #e2e2e2;
+    --bg: #fafafa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+  }
+  header.page-header {
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+    background: #fff;
+  }
+  header.page-header h1 { margin: 0 0 4px; font-size: 20px; }
+  header.page-header p { margin: 0; color: var(--muted); font-size: 13px; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 24px;
+    padding: 24px 32px;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+  /* Grid items default to min-width: auto, meaning they refuse to shrink below the intrinsic
+     (content) width of their children. The versions strip below has fixed-width cards in an
+     unwrapped flex row — past ~7-8 of them, that content width exceeds the grid track, and
+     instead of the strip's own overflow-x:auto kicking in, the WHOLE .output-column (and page)
+     gets pushed wider, forcing the entire layout to scroll horizontally. min-width: 0 here lets
+     the column shrink to its track's actual width so overflow-x:auto on .versions-strip below
+     is what scrolls, not the page. */
+  .forms-column, .output-column { min-width: 0; }
+
+  .panel {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .panel h2 {
+    font-size: 15px;
+    margin: 0 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel h2 .badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 10px;
+    background: #eef2ff;
+    color: #4338ca;
+  }
+
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    margin: 12px 0 4px;
+  }
+  label:first-of-type { margin-top: 0; }
+  input[type="text"], input[type="file"], textarea, select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  textarea { resize: vertical; min-height: 60px; }
+
+  .color-row {
+    display: flex;
+    gap: 12px;
+  }
+  .color-field { flex: 1; }
+  .color-field label { margin-top: 12px; }
+  .color-field .swatch-input {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  input[type="color"] {
+    width: 36px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .color-field input[type="text"] { font-family: monospace; font-size: 12px; }
+
+  button.submit {
+    margin-top: 16px;
+    width: 100%;
+    padding: 10px 14px;
+    border: none;
+    border-radius: 6px;
+    background: #111827;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button.submit:disabled { opacity: 0.5; cursor: default; }
+  button.submit:hover:not(:disabled) { background: #000; }
+
+  .status-line {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .status-line.error { color: #b91c1c; }
+  .status-line.ok { color: #15803d; }
+
+  .table-scroll {
+    overflow-x: auto;
+    max-width: 100%;
+    margin-top: 12px;
+  }
+  table.results {
+    width: 100%;
+    min-width: 460px;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 12px;
+  }
+  table.results th, table.results td {
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+    word-break: break-word;
+  }
+  table.results td.status-parsed { color: #15803d; font-weight: 600; }
+  table.results td.status-failed { color: #b91c1c; font-weight: 600; }
+
+  .btn-small {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--ink);
+  }
+  .btn-small:hover { background: #f8fafc; }
+
+  .versions-strip {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .versions-strip .empty-hint {
+    font-size: 12px;
+    color: var(--muted);
+    padding: 6px 2px;
+  }
+  .version-card {
+    flex: 0 0 auto;
+    width: 190px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    background: #fff;
+  }
+  .version-card:hover { border-color: #9ca3af; }
+  .version-card.active { border-color: #111827; background: #111827; }
+  .version-card .v-num {
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .version-card.active .v-num { color: #fff; }
+  .version-card .v-headline {
+    font-size: 12px;
+    line-height: 1.4;
+    margin-bottom: 6px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .version-card.active .v-headline { color: #fff; }
+  .version-card .v-meta { font-size: 10px; color: var(--muted); }
+  .version-card.active .v-meta { color: rgba(255,255,255,0.75); }
+
+  .helper-note {
+    font-size: 12px;
+    color: var(--muted);
+    margin: -6px 0 14px;
+    line-height: 1.5;
+  }
+
+  .pair-checklist {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .pair-checklist .done { color: #15803d; font-weight: 600; }
+  .pair-checklist .missing { color: #b91c1c; font-weight: 600; }
+
+  .spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid #d1d5db;
+    border-top-color: #111827;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .view-tabs {
+    display: flex;
+    gap: 8px;
+  }
+  .view-tab {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--muted);
+  }
+  .view-tab.active {
+    background: #111827;
+    color: #fff;
+    border-color: #111827;
+  }
+  pre.json-view {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 18px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 640px;
+    overflow-y: auto;
+    margin: 0;
+  }
+
+  #edit-json {
+    min-height: 420px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 12px;
+  }
+
+  /* ---- Article render ---- */
+  /* Neutral canvas backdrop behind the rendered article — the same "page sitting on a surface"
+     treatment as a print preview, so the .article block below reads as a page rather than a
+     stretched banner. Applies to all three views (Rendered/JSON/Edit); only .article itself
+     (Rendered view) is width-capped like a page — JSON/Edit stay full-width utility panels. */
+  #article-output {
+    min-height: 200px;
+    background: #e5e7eb;
+    border-radius: 8px;
+    padding: 32px 20px;
+  }
+  .empty-state {
+    color: var(--muted);
+    font-size: 13px;
+    padding: 40px 20px;
+    text-align: center;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    background: #fff;
+  }
+
+  .article {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 0; /* square corners — printed pages don't have rounded edges */
+    overflow: hidden;
+    max-width: 800px; /* roughly Letter/A4 width on screen, same page format the PDF export uses */
+    margin: 0 auto;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.14);
+  }
+  .article-header {
+    padding: 28px 32px 22px;
+    color: #fff;
+  }
+  .article-header .logos-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 18px;
+  }
+  .logo-box {
+    width: 96px;
+    height: 48px;
+    border: 1.5px dashed rgba(255,255,255,0.6);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    text-align: center;
+    padding: 4px;
+    color: rgba(255,255,255,0.9);
+    line-height: 1.3;
+  }
+  .article-header h3.headline {
+    margin: 0 0 8px;
+    font-size: 26px;
+    line-height: 1.25;
+  }
+  .article-header p.subheadline {
+    margin: 0;
+    font-size: 15px;
+    opacity: 0.9;
+  }
+
+  .hero-box {
+    margin: 20px 32px 0;
+    border: 1.5px dashed #b7b7b7;
+    border-radius: 8px;
+    background: #f3f3f3;
+    min-height: 140px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
+    padding: 16px;
+  }
+  .hero-box .caption { font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+  .hero-box .blobpath { font-family: monospace; font-size: 10px; margin-top: 6px; word-break: break-all; }
+
+  /* .body-sections and .cta-row read their background AND text color inline (see
+     renderArticleHtml / readableTextColor below) — theme.secondary_color is the actual panel
+     color behind the document's content, not a thin divider. Neither h4 nor p sets its own color
+     here anymore; both inherit whatever readableTextColor() computed, so the panel stays legible
+     whether secondary_color ends up light or dark. Superseded the earlier thin-strip-only
+     treatment (2026-07-31 revision, per feedback that a 6px divider didn't give secondary_color
+     a real purpose) — pdf_export.py's matching change replaces _secondary_accent_strip() the
+     same way. */
+  .body-sections {
+    padding: 32px;
+  }
+  .body-section { margin-bottom: 22px; }
+  .body-section:last-child { margin-bottom: 0; }
+  .body-section h4 {
+    margin: 0 0 6px;
+    font-size: 15px;
+  }
+  .body-section p { margin: 0; font-size: 14px; line-height: 1.6; }
+
+  .cta-row { padding: 24px 32px 32px; }
+  .cta-button {
+    display: inline-block;
+    padding: 12px 22px;
+    border-radius: 6px;
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .article-meta {
+    border-top: 1px solid var(--border);
+    background: #fafafa;
+    padding: 14px 32px;
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .article-meta span strong { color: var(--ink); }
+
+  .logo-img {
+    width: 96px;
+    height: 48px;
+    object-fit: contain;
+    background: #fff;
+    border-radius: 6px;
+    padding: 4px;
+  }
+  .logo-caption-small {
+    font-size: 9px;
+    text-align: center;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* ---- Evaluation panel (POST /evaluate) — sits to the right of the rendered article ---- */
+  .article-and-eval {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+  }
+  .article-and-eval #article-output { flex: 1; min-width: 0; }
+  @media (max-width: 1150px) {
+    .article-and-eval { flex-direction: column; }
+    .eval-panel { width: 100%; }
+  }
+
+  .eval-panel {
+    flex: 0 0 300px;
+    width: 300px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    background: #fff;
+  }
+  .eval-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .eval-panel-header h2 { margin: 0; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  .eval-empty {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .eval-overall { margin-bottom: 14px; }
+  .eval-pass-badge {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+  }
+  .eval-pass-badge.pass { background: #dcfce7; color: #15803d; }
+  .eval-pass-badge.fail { background: #fee2e2; color: #b91c1c; }
+  .eval-threshold-note {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .eval-subscore { margin-bottom: 10px; }
+  .eval-subscore-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .eval-bar-track {
+    height: 6px;
+    background: #f1f5f9;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .eval-bar-fill {
+    height: 100%;
+    background: #111827;
+    border-radius: 4px;
+  }
+  .eval-feedback-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    margin: 14px 0 4px;
+  }
+  .eval-feedback-text {
+    font-size: 12px;
+    line-height: 1.6;
+    color: #333;
+    margin: 0 0 12px;
+    white-space: pre-wrap;
+  }
+  .eval-regenerate-btn { width: 100%; }
+</style>
+</head>
+<body>
+
+<header class="page-header">
+  <h1>GenAI Marketing Collateral - Demo</h1>
+  <p>Same-origin demo of <code>POST /upload</code> and <code>POST /generate</code>. Served by FastAPI itself, no separate frontend deploy.</p>
+</header>
+
+<div class="layout">
+  <div class="forms-column">
+
+    <!-- Upload panel -->
+    <div class="panel">
+      <h2>1. Upload context PDFs <span class="badge">POST /upload</span></h2>
+      <p class="helper-note">Upload <strong>twice</strong> per pair, same sender_id/receiver_id both times: once with role=<strong>sender</strong> (their own offerings PDF) and once with role=<strong>receiver</strong> (the company being pitched to). Generate needs both before it will work.</p>
+      <form id="upload-form">
+        <label for="u-sender-id">sender_id</label>
+        <input type="text" id="u-sender-id" placeholder="e.g. northbridge-analytics" required>
+
+        <label for="u-receiver-id">receiver_id</label>
+        <input type="text" id="u-receiver-id" placeholder="e.g. ferrow-industrial" required>
+
+        <label for="u-role">role</label>
+        <select id="u-role" required>
+          <option value="sender">sender</option>
+          <option value="receiver">receiver</option>
+        </select>
+
+        <label for="u-files">context PDF(s)</label>
+        <input type="file" id="u-files" accept="application/pdf" multiple required>
+
+        <button type="submit" class="submit">Upload</button>
+        <div id="upload-status" class="status-line"></div>
+      </form>
+      <div id="upload-results"></div>
+      <div id="pair-checklist" class="pair-checklist" style="display:none;"></div>
+    </div>
+
+    <!-- Generate panel -->
+    <div class="panel">
+      <h2>2. Generate article <span class="badge">POST /generate</span></h2>
+      <form id="generate-form">
+        <label for="g-sender-id">sender_id</label>
+        <input type="text" id="g-sender-id" placeholder="must match an uploaded sender" required>
+
+        <label for="g-receiver-id">receiver_id</label>
+        <input type="text" id="g-receiver-id" placeholder="must match an uploaded receiver" required>
+
+        <label>theme</label>
+        <div class="color-row">
+          <div class="color-field">
+            <div class="swatch-input">
+              <input type="color" id="g-primary-picker" value="#1b3a5c">
+              <input type="text" id="g-primary" value="#1B3A5C">
+            </div>
+            <div class="logo-caption-small">primary</div>
+          </div>
+          <div class="color-field">
+            <div class="swatch-input">
+              <input type="color" id="g-secondary-picker" value="#ffffff">
+              <input type="text" id="g-secondary" value="#FFFFFF">
+            </div>
+            <div class="logo-caption-small">secondary</div>
+          </div>
+          <div class="color-field">
+            <div class="swatch-input">
+              <input type="color" id="g-accent-picker" value="#e0663e">
+              <input type="text" id="g-accent" value="#E0663E">
+            </div>
+            <div class="logo-caption-small">accent</div>
+          </div>
+        </div>
+
+        <label for="g-feedback">feedback (optional)</label>
+        <textarea id="g-feedback" placeholder="carried over from a prior /evaluate call, if any"></textarea>
+
+        <button type="submit" class="submit">Generate article</button>
+        <div id="generate-status" class="status-line"></div>
+      </form>
+    </div>
+
+  </div>
+
+  <div class="output-column">
+    <!-- Browse existing articles: horizontal strip, sits right above the article it renders into -->
+    <div class="panel" style="padding: 16px 20px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 10px;">
+        <h2 style="margin-bottom: 0; font-size: 14px;">Versions <span class="badge">GET /articles</span></h2>
+        <button type="button" class="btn-small" id="load-articles-btn">Load</button>
+      </div>
+      <div id="articles-status" class="status-line"></div>
+      <div id="articles-strip" class="versions-strip"></div>
+    </div>
+
+    <div class="panel" style="padding: 20px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 16px;">
+        <h2 style="margin-bottom: 0;">Article</h2>
+        <div style="display:flex; align-items:center; gap: 10px;">
+          <button type="button" class="btn-small" id="export-pdf-btn" style="display:none;" title="GET /articles/{id}/pdf">Export PDF</button>
+          <div class="view-tabs" id="view-tabs" style="display:none;">
+            <button type="button" class="view-tab active" data-view="rendered">Rendered</button>
+            <button type="button" class="view-tab" data-view="json">JSON</button>
+            <button type="button" class="view-tab" data-view="edit">Edit</button>
+          </div>
+        </div>
+      </div>
+      <div class="article-and-eval">
+        <div id="article-output">
+          <div class="empty-state">No article generated yet. Fill in the form on the left and click "Generate article".</div>
+        </div>
+        <div class="eval-panel">
+          <div class="eval-panel-header">
+            <h2>Evaluation <span class="badge">POST /evaluate</span></h2>
+            <button type="button" class="btn-small" id="evaluate-btn" style="display:none;">Evaluate</button>
+          </div>
+          <div id="eval-body">
+            <div class="eval-empty">Generate or select an article on the left, then click Evaluate - scores groundedness, relevance, and coherence via LLM-as-judge (independent of /generate; nothing here runs automatically).</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Keep each color's picker and hex text input in sync, both directions.
+  function linkColorInputs(pickerId, textId) {
+    const picker = document.getElementById(pickerId);
+    const text = document.getElementById(textId);
+    picker.addEventListener('input', () => { text.value = picker.value.toUpperCase(); });
+    text.addEventListener('input', () => {
+      if (/^#[0-9A-Fa-f]{6}$/.test(text.value)) picker.value = text.value;
+    });
+  }
+  linkColorInputs('g-primary-picker', 'g-primary');
+  linkColorInputs('g-secondary-picker', 'g-secondary');
+  linkColorInputs('g-accent-picker', 'g-accent');
+
+  // ---- Upload form ----
+  const uploadForm = document.getElementById('upload-form');
+  const uploadStatus = document.getElementById('upload-status');
+  const uploadResults = document.getElementById('upload-results');
+
+  uploadForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const submitBtn = uploadForm.querySelector('button[type="submit"]');
+    const senderId = document.getElementById('u-sender-id').value.trim();
+    const receiverId = document.getElementById('u-receiver-id').value.trim();
+    const role = document.getElementById('u-role').value;
+    const files = document.getElementById('u-files').files;
+
+    if (files.length === 0) {
+      uploadStatus.textContent = 'Choose at least one PDF.';
+      uploadStatus.className = 'status-line error';
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('sender_id', senderId);
+    formData.append('receiver_id', receiverId);
+    formData.append('role', role);
+    for (const f of files) formData.append('files', f);
+
+    submitBtn.disabled = true;
+    uploadStatus.innerHTML = '<span class="spinner"></span>Uploading and parsing...';
+    uploadStatus.className = 'status-line';
+    uploadResults.innerHTML = '';
+
+    try {
+      const res = await fetch('/upload', { method: 'POST', body: formData });
+      const body = await res.json();
+      if (!res.ok) {
+        uploadStatus.textContent = `Error ${res.status}: ${formatErrorDetail(body)}`;
+        uploadStatus.className = 'status-line error';
+        return;
+      }
+      uploadStatus.textContent = `Done — ${body.results.length} file(s) processed.`;
+      uploadStatus.className = 'status-line ok';
+      renderUploadResults(body.results);
+
+      // Track this role as uploaded for the pair, then nudge toward the natural next step:
+      // pre-fill Generate with the same IDs, and if this was the sender side, flip the role
+      // dropdown to receiver and clear the file picker so the second required upload is obvious.
+      const key = pairKey(senderId, receiverId);
+      uploadedPairs[key] = uploadedPairs[key] || { sender: false, receiver: false };
+      uploadedPairs[key][role] = true;
+      updatePairChecklist(senderId, receiverId);
+
+      document.getElementById('g-sender-id').value = senderId;
+      document.getElementById('g-receiver-id').value = receiverId;
+      if (role === 'sender') {
+        document.getElementById('u-role').value = 'receiver';
+      }
+      document.getElementById('u-files').value = '';
+    } catch (err) {
+      uploadStatus.textContent = `Network error: ${err.message}`;
+      uploadStatus.className = 'status-line error';
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+
+  function renderUploadResults(results) {
+    const rows = results.map(r => `
+      <tr>
+        <td>${escapeHtml(r.filename)}</td>
+        <td class="status-${r.status}">${r.status}</td>
+        <td>${r.pages_extracted}</td>
+        <td>${r.tables_extracted}</td>
+        <td>${r.images_extracted}</td>
+        <td>${r.error ? escapeHtml(r.error) : '—'}</td>
+      </tr>
+    `).join('');
+    uploadResults.innerHTML = `
+      <div class="table-scroll">
+        <table class="results">
+          <thead>
+            <tr><th>File</th><th>Status</th><th>Pages</th><th>Tables</th><th>Images</th><th>Error</th></tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  // Client-side only — tracks which roles have been uploaded for a given sender/receiver
+  // pair during this browser session, purely to drive the checklist hint below the upload
+  // form. Not read from the backend, so a page refresh resets it (harmless: re-uploading
+  // just adds a duplicate row that /generate's fetch_context already dedupes by exact text).
+  const uploadedPairs = {};
+
+  function pairKey(senderId, receiverId) {
+    return `${senderId}__${receiverId}`;
+  }
+
+  function updatePairChecklist(senderId, receiverId) {
+    const state = uploadedPairs[pairKey(senderId, receiverId)] || { sender: false, receiver: false };
+    const el = document.getElementById('pair-checklist');
+    el.style.display = 'block';
+    el.innerHTML = `Uploaded so far for <strong>${escapeHtml(senderId)} &rarr; ${escapeHtml(receiverId)}</strong>: `
+      + `sender <span class="${state.sender ? 'done' : 'missing'}">${state.sender ? '✓ done' : 'not yet'}</span>`
+      + ` &middot; receiver <span class="${state.receiver ? 'done' : 'missing'}">${state.receiver ? '✓ done' : 'not yet'}</span>`
+      + (state.sender && state.receiver ? ' &mdash; ready to generate.' : '');
+  }
+
+  // ---- Generate form ----
+  const generateForm = document.getElementById('generate-form');
+  const generateStatus = document.getElementById('generate-status');
+  const articleOutput = document.getElementById('article-output');
+  const viewTabs = document.getElementById('view-tabs');
+  const exportPdfBtn = document.getElementById('export-pdf-btn');
+  const evaluateBtn = document.getElementById('evaluate-btn');
+  let lastArticle = null; // last successful /generate response, kept so the JSON/Rendered toggle doesn't need a re-fetch
+  let lastEvaluation = null; // last successful /evaluate response for lastArticle — never persisted server-side
+
+  // Read-only export of whatever's currently displayed — GET /articles/{id}/pdf never
+  // regenerates, so this works for any version, not just one just created in this session.
+  // Content-Disposition: attachment on the response means the browser downloads the file
+  // without navigating away from the demo page.
+  exportPdfBtn.addEventListener('click', () => {
+    if (!lastArticle) return;
+    window.location.href = `/articles/${lastArticle.article_id}/pdf`;
+  });
+
+  // Fake phase labels for perceived progress while the single /generate call is in flight —
+  // the backend call is synchronous (no real streaming/polling wired up), so this is cosmetic,
+  // not a true progress feed. Deliberately generic/customer-facing wording, not internal
+  // function names (e.g. not "calling generate_draft_with_retry()").
+  const GENERATE_PHASES = [
+    'Reading sender & receiver context...',
+    'Drafting article sections...',
+    'Checking word limits & schema...',
+    'Finalizing layout...',
+  ];
+
+  function startPhaseSpinner(statusEl) {
+    let i = 0;
+    statusEl.innerHTML = `<span class="spinner"></span>${GENERATE_PHASES[0]}`;
+    return setInterval(() => {
+      // Advance through the phase list once, then hold on the last phase (spinner keeps
+      // spinning) instead of wrapping back to phase 1 — looping back to "Reading sender &
+      // receiver context..." after already showing "Finalizing layout..." reads as if the
+      // request restarted, which it didn't; it's just taking longer than 4 x 1.5s.
+      if (i < GENERATE_PHASES.length - 1) {
+        i += 1;
+        statusEl.innerHTML = `<span class="spinner"></span>${GENERATE_PHASES[i]}`;
+      }
+    }, 4500); // slow enough that a phase doesn't flash by faster than it's plausibly happening
+  }
+
+  generateForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const submitBtn = generateForm.querySelector('button[type="submit"]');
+    const payload = {
+      sender_id: document.getElementById('g-sender-id').value.trim(),
+      receiver_id: document.getElementById('g-receiver-id').value.trim(),
+      theme: {
+        primary_color: document.getElementById('g-primary').value.trim(),
+        secondary_color: document.getElementById('g-secondary').value.trim(),
+        accent_color: document.getElementById('g-accent').value.trim(),
+      },
+    };
+    const feedback = document.getElementById('g-feedback').value.trim();
+    if (feedback) payload.feedback = feedback;
+
+    submitBtn.disabled = true;
+    generateStatus.className = 'status-line';
+    const phaseInterval = startPhaseSpinner(generateStatus);
+
+    try {
+      const res = await fetch('/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json();
+      clearInterval(phaseInterval);
+      if (!res.ok) {
+        generateStatus.textContent = `Error ${res.status}: ${formatErrorDetail(body)}`;
+        generateStatus.className = 'status-line error';
+        return;
+      }
+      generateStatus.textContent = `Article generated — version ${body.version}, ${body.total_word_count} words.`;
+      generateStatus.className = 'status-line ok';
+      renderArticle(body);
+      refreshVersionsStripSilently();
+    } catch (err) {
+      clearInterval(phaseInterval);
+      generateStatus.textContent = `Network error: ${err.message}`;
+      generateStatus.className = 'status-line error';
+    } finally {
+      clearInterval(phaseInterval);
+      submitBtn.disabled = false;
+    }
+  });
+
+  // Entry point after a successful /generate — stores the response, reveals the Rendered/JSON
+  // tabs (hidden until there's something to view), and defaults back to the Rendered tab on
+  // every new generation even if JSON was left selected from a previous article.
+  function renderArticle(article) {
+    lastArticle = article;
+    viewTabs.style.display = 'flex';
+    exportPdfBtn.style.display = 'inline-flex';
+    evaluateBtn.style.display = 'inline-flex';
+    resetEvalPanel(); // this is a different (or newly regenerated) version — any prior score is stale
+    document.querySelectorAll('.view-tab').forEach(b => b.classList.remove('active'));
+    document.querySelector('.view-tab[data-view="rendered"]').classList.add('active');
+    renderCurrentView();
+
+    // Re-highlight the matching version card, if the versions strip has been loaded already —
+    // a no-op (no card to highlight yet) right after /generate or /revise, until
+    // refreshVersionsStripSilently()'s reload below picks up the freshly created version.
+    currentArticleId = article.article_id;
+    renderVersionsStrip();
+  }
+
+  // ---- Evaluation panel (POST /evaluate) — right of the rendered article ----
+  // Fully decoupled from /generate: this only ever calls /evaluate, and the "Regenerate with this
+  // feedback" button below only ever calls /generate — nothing here chains the two calls together
+  // automatically. Never persisted: reloading the page or switching versions clears it, same as
+  // lastArticle.
+
+  function resetEvalPanel() {
+    lastEvaluation = null;
+    document.getElementById('eval-body').innerHTML =
+      '<div class="eval-empty">Click Evaluate to score this version.</div>';
+  }
+
+  evaluateBtn.addEventListener('click', async () => {
+    if (!lastArticle) return;
+    const evalBody = document.getElementById('eval-body');
+    evaluateBtn.disabled = true;
+    evalBody.innerHTML = '<div class="status-line"><span class="spinner"></span>Scoring groundedness, relevance, coherence...</div>';
+
+    try {
+      const res = await fetch('/evaluate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ article_id: lastArticle.article_id }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        evalBody.innerHTML = `<div class="status-line error">Error ${res.status}: ${formatErrorDetail(body)}</div>`;
+        return;
+      }
+      renderEvaluation(body);
+    } catch (err) {
+      evalBody.innerHTML = `<div class="status-line error">Network error: ${err.message}</div>`;
+    } finally {
+      evaluateBtn.disabled = false;
+    }
+  });
+
+  function scoreBarHtml(label, value) {
+    const pct = Math.round(value * 100);
+    return `
+      <div class="eval-subscore">
+        <div class="eval-subscore-label"><span>${label}</span><span>${value.toFixed(2)}</span></div>
+        <div class="eval-bar-track"><div class="eval-bar-fill" style="width:${pct}%;"></div></div>
+      </div>
+    `;
+  }
+
+  // All three sub-scores are always shown alongside overall_score (their plain mean) — the fusion
+  // choice (mean, not weighted) stays visible instead of being hidden inside one number.
+  function renderEvaluation(result) {
+    lastEvaluation = result;
+    const passClass = result.passed ? 'pass' : 'fail';
+    const passLabel = result.passed ? 'Passed' : 'Below threshold';
+    document.getElementById('eval-body').innerHTML = `
+      <div class="eval-overall">
+        <span class="eval-pass-badge ${passClass}">${passLabel} &middot; ${(result.overall_score * 100).toFixed(0)}%</span>
+        <div class="eval-threshold-note">threshold ${(result.threshold * 100).toFixed(0)}% &middot; overall_score = mean of the three scores below</div>
+      </div>
+      ${scoreBarHtml('Groundedness', result.groundedness)}
+      ${scoreBarHtml('Relevance', result.relevance)}
+      ${scoreBarHtml('Coherence', result.coherence)}
+      <div class="eval-feedback-label">Feedback</div>
+      <p class="eval-feedback-text">${escapeHtml(result.feedback)}</p>
+      <button type="button" class="btn-small eval-regenerate-btn" id="eval-regenerate-btn">Regenerate with this feedback</button>
+    `;
+    document.getElementById('eval-regenerate-btn').addEventListener('click', regenerateWithFeedback);
+  }
+
+  // Takes the just-scored article's own sender_id/receiver_id/theme (not whatever's currently
+  // sitting in the form — they should match, but this guarantees it) and the evaluation's feedback
+  // paragraph, fills the existing Generate form, and submits it. Reuses the /generate flow as-is —
+  // no separate regenerate endpoint, no duplicated request logic. "Everything else stays the same"
+  // is enforced here, not left to whatever the operator happened to leave in the form fields.
+  function regenerateWithFeedback() {
+    if (!lastArticle || !lastEvaluation) return;
+    document.getElementById('g-sender-id').value = lastArticle.sender_id;
+    document.getElementById('g-receiver-id').value = lastArticle.receiver_id;
+    document.getElementById('g-primary').value = lastArticle.theme.primary_color;
+    document.getElementById('g-primary-picker').value = lastArticle.theme.primary_color;
+    document.getElementById('g-secondary').value = lastArticle.theme.secondary_color;
+    document.getElementById('g-secondary-picker').value = lastArticle.theme.secondary_color;
+    document.getElementById('g-accent').value = lastArticle.theme.accent_color;
+    document.getElementById('g-accent-picker').value = lastArticle.theme.accent_color;
+    document.getElementById('g-feedback').value = lastEvaluation.feedback;
+    generateForm.requestSubmit();
+  }
+
+  viewTabs.addEventListener('click', (e) => {
+    const btn = e.target.closest('.view-tab');
+    if (!btn) return;
+    document.querySelectorAll('.view-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderCurrentView();
+  });
+
+  function renderCurrentView() {
+    if (!lastArticle) return;
+    // Canvas backdrop stays the fixed neutral #e5e7eb from the stylesheet (a plain "page sitting
+    // on a surface" treatment) regardless of theme — that outer canvas is never the right place
+    // for theme.secondary_color; it's used inside the article itself instead (renderArticleHtml's
+    // .body-sections/.cta-row background, contrast-aware via readableTextColor()).
+    const active = document.querySelector('.view-tab.active');
+    const view = active ? active.dataset.view : 'rendered';
+    if (view === 'json') {
+      articleOutput.innerHTML = `<pre class="json-view">${escapeHtml(JSON.stringify(lastArticle, null, 2))}</pre>`;
+    } else if (view === 'edit') {
+      renderEditView();
+    } else {
+      renderArticleHtml(lastArticle);
+    }
+  }
+
+  // ---- Browse existing articles (GET /articles) — horizontal strip above the Article panel ----
+  // currentArticleId tracks whichever article is on screen right now (from /generate, /revise,
+  // or a strip click) purely so the matching version card can be highlighted "active" — it's
+  // display-only, never sent back to the server.
+  let currentArticleId = null;
+  let lastLoadedArticles = [];
+
+  document.getElementById('load-articles-btn').addEventListener('click', loadArticles);
+
+  async function loadArticles() {
+    const senderId = document.getElementById('g-sender-id').value.trim();
+    const receiverId = document.getElementById('g-receiver-id').value.trim();
+    const statusEl = document.getElementById('articles-status');
+    const stripEl = document.getElementById('articles-strip');
+
+    if (!senderId || !receiverId) {
+      statusEl.textContent = 'Fill in sender_id / receiver_id above first.';
+      statusEl.className = 'status-line error';
+      return;
+    }
+
+    statusEl.innerHTML = '<span class="spinner"></span>Loading...';
+    statusEl.className = 'status-line';
+
+    try {
+      const res = await fetch(`/articles?sender_id=${encodeURIComponent(senderId)}&receiver_id=${encodeURIComponent(receiverId)}`);
+      const body = await res.json();
+      if (!res.ok) {
+        statusEl.textContent = `Error ${res.status}: ${formatErrorDetail(body)}`;
+        statusEl.className = 'status-line error';
+        return;
+      }
+      lastLoadedArticles = body.articles;
+      if (body.articles.length === 0) {
+        statusEl.textContent = 'No articles generated yet for this pair.';
+        statusEl.className = 'status-line';
+        stripEl.innerHTML = '';
+        return;
+      }
+      statusEl.textContent = `${body.articles.length} version(s) - click a card to view it.`;
+      statusEl.className = 'status-line ok';
+      renderVersionsStrip();
+    } catch (err) {
+      statusEl.textContent = `Network error: ${err.message}`;
+      statusEl.className = 'status-line error';
+    }
+  }
+
+  function renderVersionsStrip() {
+    const stripEl = document.getElementById('articles-strip');
+    if (lastLoadedArticles.length === 0) {
+      stripEl.innerHTML = '';
+      return;
+    }
+    stripEl.innerHTML = lastLoadedArticles.map(a => `
+      <div class="version-card ${a.article_id === currentArticleId ? 'active' : ''}" data-article-id="${a.article_id}">
+        <div class="v-num">v${a.version} &middot; ${escapeHtml(a.status)}</div>
+        <div class="v-headline">${escapeHtml(a.headline)}</div>
+        <div class="v-meta">${a.total_word_count} words</div>
+      </div>
+    `).join('');
+    stripEl.querySelectorAll('.version-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const article = lastLoadedArticles.find(a => a.article_id === card.dataset.articleId);
+        if (!article) return;
+        generateStatus.textContent = `Viewing v${article.version} (loaded from /articles, not regenerated).`;
+        generateStatus.className = 'status-line ok';
+        renderArticle(article);
+      });
+    });
+  }
+
+  // Auto-refreshes the strip after a successful /generate or /revise (see calls below), so a
+  // freshly created version shows up without an extra manual "Load" click — silent no-op if
+  // sender_id/receiver_id aren't both filled, which shouldn't happen right after a successful
+  // call since both were required to get here.
+  function refreshVersionsStripSilently() {
+    const senderId = document.getElementById('g-sender-id').value.trim();
+    const receiverId = document.getElementById('g-receiver-id').value.trim();
+    if (senderId && receiverId) loadArticles();
+  }
+
+  // ---- Edit view: hand-edit the JSON, submit to POST /articles/{id}/revise ----
+  // Only the fields ArticleRevisionRequest actually accepts are shown — sender_id, receiver_id,
+  // theme, article_id/version/created_at, and image blob_path/image_url are locked server-side
+  // and deliberately not part of this payload at all, so there's nothing here to accidentally
+  // reassign an article to a different company pair or point an image at the wrong blob.
+  function buildEditableSubset(article) {
+    return {
+      headline: article.headline,
+      subheadline: article.subheadline,
+      body_sections: article.body_sections,
+      call_to_action: article.call_to_action,
+      image_captions: Object.fromEntries(article.image_slots.map(s => [s.slot_id, s.caption])),
+    };
+  }
+
+  function renderEditView() {
+    const editable = buildEditableSubset(lastArticle);
+    articleOutput.innerHTML = `
+      <p class="helper-note">Hand-edit the fields below (raw JSON). sender_id, receiver_id, theme, and image sources aren't shown here because they can't be changed via this form. Submitting creates a new version — the original is kept, not overwritten.</p>
+      <textarea id="edit-json" spellcheck="false">${escapeHtml(JSON.stringify(editable, null, 2))}</textarea>
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <button type="button" class="submit" id="edit-submit" style="margin-top:0;">Submit revision</button>
+        <button type="button" class="submit" id="edit-cancel" style="margin-top:0; background:#6b7280;">Cancel</button>
+      </div>
+      <div id="edit-status" class="status-line"></div>
+    `;
+    document.getElementById('edit-cancel').addEventListener('click', () => {
+      document.querySelector('.view-tab[data-view="rendered"]').click();
+    });
+    document.getElementById('edit-submit').addEventListener('click', submitEdit);
+  }
+
+  async function submitEdit() {
+    const textarea = document.getElementById('edit-json');
+    const statusEl = document.getElementById('edit-status');
+    let payload;
+    try {
+      payload = JSON.parse(textarea.value);
+    } catch (err) {
+      statusEl.textContent = `Invalid JSON: ${err.message}`;
+      statusEl.className = 'status-line error';
+      return;
+    }
+
+    statusEl.innerHTML = '<span class="spinner"></span>Validating and saving revision...';
+    statusEl.className = 'status-line';
+
+    try {
+      const res = await fetch(`/articles/${lastArticle.article_id}/revise`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        statusEl.textContent = `Error ${res.status}: ${formatErrorDetail(body)}`;
+        statusEl.className = 'status-line error';
+        return;
+      }
+      generateStatus.textContent = `Revision saved — version ${body.version}, ${body.total_word_count} words.`;
+      generateStatus.className = 'status-line ok';
+      renderArticle(body); // updates lastArticle, resets view to Rendered
+      refreshVersionsStripSilently();
+    } catch (err) {
+      statusEl.textContent = `Network error: ${err.message}`;
+      statusEl.className = 'status-line error';
+    }
+  }
+
+  // WCAG relative-luminance formula — standard, not invented here. Used to pick body/heading text
+  // color for the .body-sections/.cta-row panel below, since that panel's background is now
+  // theme.secondary_color directly (2026-07-31 revision) and a caller could pick anything from
+  // white to black. Without this, a dark secondary_color would silently produce unreadable
+  // dark-on-dark text — this makes the panel legible regardless of which color is chosen, rather
+  // than only working for the colors we happened to test with.
+  function relativeLuminance(hex) {
+    const c = hex.replace('#', '');
+    const chan = (v) => {
+      v = parseInt(v, 16) / 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    };
+    const r = chan(c.substring(0, 2)), g = chan(c.substring(2, 4)), b = chan(c.substring(4, 6));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+  function readableTextColor(bgHex) {
+    return relativeLuminance(bgHex) > 0.5 ? '#1a1a1a' : '#f5f5f5';
+  }
+
+  function renderArticleHtml(article) {
+    const theme = article.theme;
+    const slots = {};
+    for (const s of article.image_slots) slots[s.slot_id] = s;
+
+    const senderLogo = slots['logo_sender'];
+    const receiverLogo = slots['logo_receiver'];
+    const hero = slots['hero_contextual'];
+
+    // theme.secondary_color is the actual background of the document's content area — headline
+    // sections down through the CTA row — not a thin divider (2026-07-31 revision, superseding
+    // the earlier .theme-strip-only treatment). The CTA button itself keeps theme.accent_color
+    // unchanged, so it still pops against whatever the panel color is.
+    const bodyTextColor = readableTextColor(theme.secondary_color);
+
+    const bodySectionsHtml = article.body_sections.map(sec => `
+      <div class="body-section">
+        <h4>${escapeHtml(sec.heading)}</h4>
+        <p>${escapeHtml(sec.text)}</p>
+      </div>
+    `).join('');
+
+    articleOutput.innerHTML = `
+      <div class="article">
+        <div class="article-header" style="background:${theme.primary_color};">
+          <div class="logos-row">
+            ${logoBoxHtml(senderLogo)}
+            ${logoBoxHtml(receiverLogo)}
+          </div>
+          <h3 class="headline">${escapeHtml(article.headline)}</h3>
+          ${article.subheadline ? `<p class="subheadline">${escapeHtml(article.subheadline)}</p>` : ''}
+        </div>
+
+        ${hero ? `
+        <div class="hero-box">
+          <div class="caption">[ Image: ${escapeHtml(hero.caption)} ]</div>
+          <div>slot: ${hero.slot_id} · source: ${hero.source_type}</div>
+          ${hero.blob_path ? `<div class="blobpath">${escapeHtml(hero.blob_path)}</div>` : ''}
+        </div>` : ''}
+
+        <div class="body-sections" style="background:${theme.secondary_color}; color:${bodyTextColor};">${bodySectionsHtml}</div>
+
+        <div class="cta-row" style="background:${theme.secondary_color};">
+          <span class="cta-button" style="background:${theme.accent_color};">${escapeHtml(article.call_to_action)}</span>
+        </div>
+
+        <div class="article-meta">
+          <span><strong>article_id:</strong> ${article.article_id}</span>
+          <span><strong>version:</strong> ${article.version}</span>
+          <span><strong>status:</strong> ${article.status}</span>
+          <span><strong>words:</strong> ${article.total_word_count}</span>
+          <span><strong>created_at:</strong> ${article.created_at}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function logoBoxHtml(slot) {
+    if (!slot) return '';
+    // image_url (a short-lived SAS URL, see app/storage.get_image_url) renders as a real <img>;
+    // falls back to the bracketed placeholder if it's null (e.g. no logo was ever extracted from
+    // the uploaded PDF for this side).
+    const box = slot.image_url
+      ? `<img class="logo-img" src="${escapeHtml(slot.image_url)}" alt="${escapeHtml(slot.caption)}">`
+      : `<div class="logo-box">[${escapeHtml(slot.caption)}]</div>`;
+    return `
+      <div style="text-align:center;">
+        ${box}
+        ${slot.blob_path ? `<div class="logo-caption-small" style="color:rgba(255,255,255,0.75);">${escapeHtml(slot.blob_path)}</div>` : ''}
+      </div>
+    `;
+  }
+
+  // FastAPI's 422 responses put validation errors under body.detail as an ARRAY of objects
+  // (one per failing field, e.g. {loc: ["body","headline"], msg: "...", type: "..."}), not a
+  // plain string — 4xx/5xx errors we raise ourselves via HTTPException (404s, 502s) DO put a
+  // plain string there instead. Interpolating body.detail straight into a template string
+  // stringifies each array element via its default Object.toString(), which is literally the
+  // string "[object Object]" — this formats both shapes into something actually readable.
+  //
+  // The array shape is uniform across FastAPI/Pydantic regardless of *why* validation failed —
+  // a missing field, a wrong type, a built-in constraint (list min/max length, string pattern),
+  // a custom @field_validator raising ValueError, an error nested inside a list item (e.g.
+  // body_sections[1].text), or a bad path/query param — so this one formatter covers all of
+  // them, not just the body_sections length check that first surfaced the bug.
+  function formatErrorDetail(body) {
+    if (typeof body.detail === 'string') return body.detail;
+    if (Array.isArray(body.detail)) {
+      return body.detail
+        .map(e => `${(e.loc || []).filter(p => !['body', 'path', 'query'].includes(p)).join('.')}: ${e.msg}`)
+        .join('; ');
+    }
+    return JSON.stringify(body);
+  }
+
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+</script>
+
+</body>
+</html>

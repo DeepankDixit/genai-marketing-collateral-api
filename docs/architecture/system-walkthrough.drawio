@@ -1,0 +1,480 @@
+<mxfile host="Electron" pages="3">
+  <diagram name="System Walkthrough" id="systemwalkthrough">
+    <mxGraphModel dx="1911" dy="895" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1980" pageHeight="2230" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="lane8" parent="1" style="swimlane;html=1;horizontal=1;startSize=26;fillColor=#f5f5f5;strokeColor=#999999;fontSize=13;fontStyle=1;align=left;spacingLeft=10;fontColor=#333333;" value="POST /upload  —  app/routers/upload.py  (multipart/form-data)" vertex="1">
+          <mxGeometry height="480" width="1940" x="20" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="e22" edge="1" parent="lane8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;curved=0;dashed=1;" value="returns">
+          <mxGeometry relative="1" y="-10" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="464" y="140.00000000000023" as="sourcePoint" />
+            <mxPoint x="1680" y="140.00000000000023" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="n16" parent="lane8" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="Blob container: extracted-images&#xa;Storage Account&#xa;path: {sender_id}/{receiver_id}/{role}/&#xa;      {document_id}/{image_filename}&#xa;written by storage.upload_extracted_images()" vertex="1">
+          <mxGeometry height="90" width="300" x="1320" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="n18" parent="lane8" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="Table: documentmetadata&#xa;Storage Account&#xa;PartitionKey = {sender_id}__{receiver_id}&#xa;RowKey = {document_id}&#xa;cols: role, filename, raw_pdf_blob_path, text,&#xa;tables_json, image_blob_paths_json, page_count,&#xa;uploaded_at&#xa;written by storage.save_document_metadata()" vertex="1">
+          <mxGeometry height="190" width="340" x="1300" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="e19" edge="1" parent="lane8" source="n16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="n18" value="4. save_document_metadata()">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n14b" parent="lane8" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="PyMuPDF (fitz): _extract_images()&amp;#xa;IMAGES ONLY — not text, not tables.&amp;#xa;page.get_images(full=True) scans the page&#39;s&amp;#xa;content stream for embedded raster images,&amp;#xa;returns each one&#39;s xref (a pointer into the PDF&#39;s&amp;#xa;internal object table — not the image data itself).&amp;#xa;doc.extract_image(xref) follows that pointer and&amp;#xa;returns already-decoded real image bytes (e.g.&amp;#xa;actual PNG/JPEG bytes) + the file extension.&amp;#xa;Not base64, not markdown — same bytes as saving&amp;#xa;that picture as its own file." vertex="1">
+          <mxGeometry height="190" width="300" x="940" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="e17" edge="1" parent="lane8" source="n14b" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;exitX=1;exitY=0.15;entryX=0;entryY=0.7;" target="n16" value="3. upload_extracted_images()">
+          <mxGeometry relative="1" x="-0.1632" y="20" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="n14" parent="lane8" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="pdfplumber: _extract_text_and_tables()&amp;#xa;TEXT: page.extract_text() — stitches every&amp;#xa;character&#39;s position back into reading-order text.&amp;#xa;TABLES: page.extract_tables() — a layout&amp;#xa;heuristic, NOT OCR, NOT an LLM: reads the page&#39;s&amp;#xa;ruled lines (or, absent those, consistent gaps/&amp;#xa;alignment between text tokens) to infer a row/&amp;#xa;column grid, then buckets tokens into cells.&amp;#xa;Reliable here because these are born-digital PDFs&amp;#xa;with real vector-drawn table borders (reportlab) —&amp;#xa;a scanned PDF would need OCR first (not done here)." vertex="1">
+          <mxGeometry height="190" width="300" x="540" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="e14b" edge="1" parent="lane8" source="n14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="n14b" value="then _extract_images()&#xa;(same parse_pdf() call)">
+          <mxGeometry relative="1" y="-25" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e14direct" edge="1" parent="lane8" source="n14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;dashed=1;exitX=0.5;exitY=1;entryX=0.5;entryY=1;" target="n18" value="text + tables_json&#xa;(straight into the table row,&#xa;never touches Blob Storage)">
+          <mxGeometry relative="1" x="-0.025" y="-30" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="690" y="430" />
+              <mxPoint x="1470" y="430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lane23" parent="1" style="swimlane;html=1;horizontal=1;startSize=26;fillColor=#f5f5f5;strokeColor=#999999;fontSize=13;fontStyle=1;align=left;spacingLeft=10;fontColor=#333333;" value="POST /generate  —  app/routers/generate.py + app/generation.py  (application/json)" vertex="1">
+          <mxGeometry height="840" width="1940" x="20" y="610" as="geometry" />
+        </mxCell>
+        <mxCell id="5silZvYX7goSeBLVEoFY-1" parent="lane23" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;dashed=1;" value="&lt;strong&gt;Resolve Image Slots&lt;/strong&gt; — deterministic, no LLM. Builds 3 fixed slots in order: &lt;code class=&quot;bg-text-200/5 border border-0.5 border-border-300 text-danger-000 whitespace-pre-wrap rounded-[0.4rem] px-1 py-px text-[0.9rem]&quot;&gt;logo_sender&lt;/code&gt; (first image in sender PDF), &lt;code class=&quot;bg-text-200/5 border border-0.5 border-border-300 text-danger-000 whitespace-pre-wrap rounded-[0.4rem] px-1 py-px text-[0.9rem]&quot;&gt;logo_receiver&lt;/code&gt; (first image in receiver PDF), &lt;code class=&quot;bg-text-200/5 border border-0.5 border-border-300 text-danger-000 whitespace-pre-wrap rounded-[0.4rem] px-1 py-px text-[0.9rem]&quot;&gt;hero_contextual&lt;/code&gt; (no source yet - known gap, path stubbed &lt;code class=&quot;bg-text-200/5 border border-0.5 border-border-300 text-danger-000 whitespace-pre-wrap rounded-[0.4rem] px-1 py-px text-[0.9rem]&quot;&gt;None&lt;/code&gt;). Logo detection is positional (assumes logo = first extracted image), not classified." vertex="1">
+          <mxGeometry height="90" width="300" x="570" y="550" as="geometry" />
+        </mxCell>
+        <mxCell id="badge_n50" parent="lane23" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontColor=#9673a6;fontSize=9;fontStyle=1;align=center;verticalAlign=middle;dashed=0;" value="Ⓟ Pydantic model" vertex="1">
+          <mxGeometry height="16" width="92" x="60" y="654" as="geometry" />
+        </mxCell>
+        <mxCell id="lane54" parent="1" style="swimlane;html=1;horizontal=1;startSize=26;fillColor=#f5f5f5;strokeColor=#999999;fontSize=13;fontStyle=1;align=left;spacingLeft=10;fontColor=#333333;" value="POST /evaluate  —  app/routers/evaluate.py + app/evaluation.py  (application/json)" vertex="1">
+          <mxGeometry height="220" width="1940" x="20" y="1470" as="geometry" />
+        </mxCell>
+        <mxCell id="n56" parent="lane54" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="evaluate.py&lt;br&gt;evaluate()&lt;br&gt;&lt;div&gt;404 if article_id unknown.&amp;nbsp;&lt;/div&gt;&lt;div&gt;Re-fetches sender/receiver context by the article&#39;s own IDs (not client input) so the judge scores groundedness against real source material, not the article in isolation.&lt;/div&gt;" vertex="1">
+          <mxGeometry height="115" width="210" x="240" y="85" as="geometry" />
+        </mxCell>
+        <mxCell id="lane66" parent="1" style="swimlane;html=1;horizontal=1;startSize=26;fillColor=#f5f5f5;strokeColor=#999999;fontSize=13;fontStyle=1;align=left;spacingLeft=10;fontColor=#333333;" value="POST /articles/{article_id}/revise  —  app/routers/articles.py + app/generation.py  (hand-edit -&gt; new version)" vertex="1">
+          <mxGeometry height="220" width="1940" x="20" y="1710" as="geometry" />
+        </mxCell>
+        <mxCell id="lane78" parent="1" style="swimlane;html=1;horizontal=1;startSize=26;fillColor=#f5f5f5;strokeColor=#999999;fontSize=13;fontStyle=1;align=left;spacingLeft=10;fontColor=#333333;" value="GET /articles  (list versions)   +   GET /articles/{article_id}/pdf  (export)  —  app/routers/articles.py + app/pdf_export.py" vertex="1">
+          <mxGeometry height="240" width="1940" x="20" y="1950" as="geometry" />
+        </mxCell>
+        <mxCell id="title" parent="1" style="text;html=1;fontSize=20;fontStyle=1;align=center;" value="GenAI Marketing Collateral API - System Walkthrough: Endpoint -&amp;gt; Code -&amp;gt; Azure Resource" vertex="1">
+          <mxGeometry height="30" width="1900" x="40" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" parent="1" style="text;html=1;fontSize=12;fontStyle=0;align=center;fontColor=#666666;" value="Every box is a real function/resource from repo/app; every Azure box names the exact Storage Account, container/table, and path/key pattern (see azure-setup-log.md)." vertex="1">
+          <mxGeometry height="20" width="1900" x="40" y="38" as="geometry" />
+        </mxCell>
+        <mxCell id="n1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontSize=10;" value="Client request" vertex="1">
+          <mxGeometry height="26" width="210" x="40" y="64" as="geometry" />
+        </mxCell>
+        <mxCell id="n2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontSize=10;" value="FastAPI router (entrypoint)" vertex="1">
+          <mxGeometry height="26" width="210" x="262" y="64" as="geometry" />
+        </mxCell>
+        <mxCell id="n3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontSize=10;" value="Internal module call" vertex="1">
+          <mxGeometry height="26" width="210" x="484" y="64" as="geometry" />
+        </mxCell>
+        <mxCell id="n4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontSize=10;" value="Azure Storage I/O (Blob / Table)" vertex="1">
+          <mxGeometry height="26" width="210" x="706" y="64" as="geometry" />
+        </mxCell>
+        <mxCell id="n5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontSize=10;" value="Azure OpenAI call" vertex="1">
+          <mxGeometry height="26" width="210" x="928" y="64" as="geometry" />
+        </mxCell>
+        <mxCell id="n6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontSize=10;" value="HTTP response" vertex="1">
+          <mxGeometry height="26" width="210" x="1150" y="64" as="geometry" />
+        </mxCell>
+        <mxCell id="n7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;fontSize=10;" value="Validation failure / retry path" vertex="1">
+          <mxGeometry height="26" width="210" x="1372" y="64" as="geometry" />
+        </mxCell>
+        <mxCell id="n9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="Client&#xa;POST /upload&#xa;Form fields: sender_id, receiver_id,&#xa;role (sender|receiver), files[]" vertex="1">
+          <mxGeometry height="90" width="190" x="40" y="195" as="geometry" />
+        </mxCell>
+        <mxCell id="n10" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="upload.py&lt;br&gt;upload_context_pdfs()&lt;br&gt;for each file -&amp;gt; _ingest_one() :&lt;i&gt; fresh random UUID&lt;/i&gt;&lt;br&gt;(one file failing != whole batch fails)" vertex="1">
+          <mxGeometry height="90" width="220" x="260" y="195" as="geometry" />
+        </mxCell>
+        <mxCell id="n12" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="Blob container: raw-pdfs&#xa;Storage Account&#xa;path: {sender_id}/{receiver_id}/{role}/&#xa;      {document_id}/{filename}&#xa;written by storage.upload_raw_pdf()&#xa;(always, even if parsing later fails)" vertex="1">
+          <mxGeometry height="90" width="300" x="560" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="n20" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="200 UploadResponse&#xa;results[]: document_id, status&#xa;(parsed|failed), pages/tables/&#xa;images_extracted, error?" vertex="1">
+          <mxGeometry height="100" width="240" x="1700" y="195" as="geometry" />
+        </mxCell>
+        <mxCell id="n24" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="Client&#xa;POST /generate&#xa;JSON: sender_id, receiver_id,&#xa;theme, feedback? (optional)" vertex="1">
+          <mxGeometry height="90" width="190" x="40" y="730" as="geometry" />
+        </mxCell>
+        <mxCell id="n25" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="generate.py&#xa;generate_article()&#xa;404 if either side has no&#xa;uploaded context yet" vertex="1">
+          <mxGeometry height="90" width="220" x="270" y="730" as="geometry" />
+        </mxCell>
+        <mxCell id="n27" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="sender_ctx = storage.fetch_context(role=&quot;sender&quot;)&lt;br&gt;reads Table: documentmetadata&lt;br&gt;filter: PartitionKey eq &#39;{sender}__{receiver}&#39;&lt;br&gt;        and role eq &#39;sender&#39;&lt;br&gt;dedup: exact full-text match via a hash set&lt;br&gt;(set membership, O(n) overall - NOT pairwise O(n²))" vertex="1">
+          <mxGeometry height="90" width="270" x="540" y="655" as="geometry" />
+        </mxCell>
+        <mxCell id="n28" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="receiver_ctx = storage.fetch_context(role=&quot;receiver&quot;)&lt;br&gt;reads Table: documentmetadata&lt;br&gt;filter: PartitionKey eq &#39;{sender}__{receiver}&#39;&lt;br&gt;        and role eq &#39;receiver&#39;&lt;br&gt;dedup: same hash-set check as sender, O(n)&lt;br&gt;returns text + tables + image blob PATHS only —&lt;br&gt;no bytes fetched from Blob Storage at this point" vertex="1">
+          <mxGeometry height="110" width="270" x="540" y="770" as="geometry" />
+        </mxCell>
+        <mxCell id="n34" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="build_user_prompt()&#xa;labeled SENDER CONTEXT /&#xa;RECEIVER CONTEXT blocks&#xa;+ optional FEEDBACK block" vertex="1">
+          <mxGeometry height="90" width="300" x="900" y="705" as="geometry" />
+        </mxCell>
+        <mxCell id="n36" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="Azure OpenAI&#xa;Deployment: gpt-5-mini (Global Standard)&#xa;client.beta.chat.completions.parse(&#xa;  model=&quot;gpt-5-mini&quot;, response_format=LLMDraft)&#xa;structured-output mode -&gt; shape guaranteed,&#xa;word-count NOT guaranteed (checked next)" vertex="1">
+          <mxGeometry height="140" width="300" x="900" y="825" as="geometry" />
+        </mxCell>
+        <mxCell id="n38" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="Pydantic validation (LLMDraft validators)&#xa;word limits, 2-3 body_sections, etc.&#xa;ON FAIL: ValidationError text fed back as&#xa;feedback -&gt; retry (1 retry, then RuntimeError -&gt; 502)" vertex="1">
+          <mxGeometry height="90" width="300" x="900" y="1000" as="geometry" />
+        </mxCell>
+        <mxCell id="n42" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="5. resolve_image_slots(sender_ctx, receiver_ctx, draft)&lt;br&gt;draft itself has NO image_slots field — only 3 caption&lt;br&gt;strings (sender_logo_caption, receiver_logo_caption,&lt;br&gt;contextual_image_caption). image_slots[] is built fresh,&lt;br&gt;right here, from those captions + sender/receiver_ctx&#39;s&lt;br&gt;image_paths. logo_sender/receiver: first image per side.&lt;br&gt;hero_contextual: caption only, blob_path=None (known gap). &lt;i&gt;Produces exactly 3 ImageSlot objects.&lt;/i&gt;" vertex="1">
+          <mxGeometry height="130" width="300" x="900" y="1150" as="geometry" />
+        </mxCell>
+        <mxCell id="n44" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="6. storage.get_image_url() &lt;i&gt;i.e.&amp;nbsp;image_url=get_image_url(receiver_logo_path)&lt;/i&gt;&lt;br&gt;Blob: extracted-images (Storage Account)&lt;br&gt;SAS token, read-only, 6h expiry&lt;br&gt;(minted fresh every call, not cached)" vertex="1">
+          <mxGeometry height="90" width="300" x="900" y="1310" as="geometry" />
+        </mxCell>
+        <mxCell id="n46" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="storage.get_next_version()&#xa;reads Table: articles&#xa;PartitionKey = {sender}__{receiver}&#xa;max(version) + 1  (1 if none exist)" vertex="1">
+          <mxGeometry height="90" width="270" x="540" y="1310" as="geometry" />
+        </mxCell>
+        <mxCell id="n48" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="storage.save_article()&#xa;writes Table: articles (Storage Account)&#xa;PartitionKey={sender}__{receiver}&#xa;RowKey={article_id}&#xa;cols: version, article_json (full&#xa;ArticleOutput as one JSON string),&#xa;created_at" vertex="1">
+          <mxGeometry height="120" width="250" x="250" y="1310" as="geometry" />
+        </mxCell>
+        <mxCell id="n50" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="200 ArticleOutput&#xa;headline, subheadline?,&#xa;body_sections[], call_to_action,&#xa;image_slots[] (w/ SAS URLs),&#xa;theme, total_word_count, version" vertex="1">
+          <mxGeometry height="120" width="190" x="40" y="1310" as="geometry" />
+        </mxCell>
+        <mxCell id="n52" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;dashed=1;" value="502 if RuntimeError&#xa;(gave up after 2 attempts)&#xa;404 if fetch_context raises&#xa;(no uploaded context for a side)" vertex="1">
+          <mxGeometry height="90" width="300" x="1240" y="1150" as="geometry" />
+        </mxCell>
+        <mxCell id="n55" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="Client&#xa;POST /evaluate&#xa;JSON: {article_id}" vertex="1">
+          <mxGeometry height="70" width="190" x="40" y="1555" as="geometry" />
+        </mxCell>
+        <mxCell id="n58" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="storage.get_article(article_id)&#xa;Table: articles (Storage Account)&#xa;cross-partition query:&#xa;RowKey eq &#39;{article_id}&#39;" vertex="1">
+          <mxGeometry height="80" width="260" x="500" y="1555" as="geometry" />
+        </mxCell>
+        <mxCell id="n60" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="fetch_context(role=&quot;sender&quot;) +&#xa;fetch_context(role=&quot;receiver&quot;)&#xa;reads Table: documentmetadata again —&#xa;re-fetched by article&#39;s own sender_id/&#xa;receiver_id, same as /generate did" vertex="1">
+          <mxGeometry height="90" width="280" x="800" y="1555" as="geometry" />
+        </mxCell>
+        <mxCell id="n62" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="evaluation.py: evaluate_article()&#xa;Azure OpenAI (gpt-5-mini)&#xa;LLM-as-judge: groundedness, relevance,&#xa;coherence — no deterministic re-check.&#xa;Writes nothing to storage (always fresh)." vertex="1">
+          <mxGeometry height="90" width="280" x="1120" y="1555" as="geometry" />
+        </mxCell>
+        <mxCell id="n64" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="200 EvaluationResult&#xa;scores + feedback: str&#xa;(same shape as GenerateRequest.&#xa;feedback — caller can round-trip&#xa;it straight into POST /generate)" vertex="1">
+          <mxGeometry height="90" width="260" x="1440" y="1555" as="geometry" />
+        </mxCell>
+        <mxCell id="n67" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="Client&#xa;POST /articles/{id}/revise&#xa;JSON: headline, subheadline,&#xa;body_sections[], call_to_action,&#xa;image_captions{slot_id: caption}" vertex="1">
+          <mxGeometry height="90" width="190" x="40" y="1795" as="geometry" />
+        </mxCell>
+        <mxCell id="n68" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="articles.py&lt;br&gt;revise_article(UUID, ArticleRevisionRequest)&lt;br&gt;404 if article_id unknown" vertex="1">
+          <mxGeometry height="90" width="210" x="260" y="1795" as="geometry" />
+        </mxCell>
+        <mxCell id="n70" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="storage.get_article(article_id)&#xa;Table: articles (Storage Account)&#xa;cross-partition query:&#xa;RowKey eq &#39;{article_id}&#39;" vertex="1">
+          <mxGeometry height="80" width="250" x="500" y="1795" as="geometry" />
+        </mxCell>
+        <mxCell id="n72" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="generation.py&#xa;assemble_revised_article()&#xa;Locked, always copied from original —&#xa;never from request: sender_id, receiver_id,&#xa;theme, each image_slot&#39;s blob_path/image_url.&#xa;Only caption (per slot_id) is replaceable.&#xa;New article_id + get_next_version()+1" vertex="1">
+          <mxGeometry height="110" width="300" x="780" y="1795" as="geometry" />
+        </mxCell>
+        <mxCell id="n74" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="storage.save_article()&#xa;writes Table: articles (Storage Account)&#xa;new RowKey={new article_id},&#xa;same PartitionKey (append-only —&#xa;v1 auto-gen + v2 hand-edit coexist)" vertex="1">
+          <mxGeometry height="90" width="260" x="1120" y="1795" as="geometry" />
+        </mxCell>
+        <mxCell id="n76" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="200 ArticleOutput&#xa;(the new version row —&#xa;v1 stays retrievable via&#xa;GET /articles, unmodified)" vertex="1">
+          <mxGeometry height="90" width="260" x="1420" y="1795" as="geometry" />
+        </mxCell>
+        <mxCell id="n79" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="Client&#xa;GET /articles&#xa;?sender_id&amp;receiver_id" vertex="1">
+          <mxGeometry height="60" width="190" x="40" y="2005" as="geometry" />
+        </mxCell>
+        <mxCell id="n80" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="articles.py: get_articles()&#xa;-&gt; storage.list_articles()" vertex="1">
+          <mxGeometry height="60" width="210" x="260" y="2005" as="geometry" />
+        </mxCell>
+        <mxCell id="n82" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="storage.list_articles()&#xa;Table: articles (Storage Account)&#xa;query PartitionKey eq &#39;{sender}__{receiver}&#39;&#xa;per-row try/except deserialize (bad rows&#xa;logged + skipped, not fatal); sorted newest-first" vertex="1">
+          <mxGeometry height="80" width="320" x="500" y="2005" as="geometry" />
+        </mxCell>
+        <mxCell id="n84" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="200 ArticleListResponse&#xa;articles[]: every version,&#xa;both /generate + /revise rows" vertex="1">
+          <mxGeometry height="60" width="260" x="860" y="2005" as="geometry" />
+        </mxCell>
+        <mxCell id="n86" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="Client&#xa;GET /articles/{article_id}/pdf" vertex="1">
+          <mxGeometry height="70" width="190" x="40" y="2115" as="geometry" />
+        </mxCell>
+        <mxCell id="n87" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="articles.py&#xa;export_article_pdf()&#xa;404 if article_id unknown" vertex="1">
+          <mxGeometry height="70" width="210" x="260" y="2115" as="geometry" />
+        </mxCell>
+        <mxCell id="n89" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="storage.get_article(article_id)&#xa;Table: articles (Storage Account)&#xa;same lookup /evaluate + /revise use" vertex="1">
+          <mxGeometry height="70" width="260" x="500" y="2115" as="geometry" />
+        </mxCell>
+        <mxCell id="n91" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="pdf_export.py: build_pdf()&#xa;storage.download_blob_bytes()&#xa;Blob: extracted-images (Storage Account) —&#xa;real bytes embedded via reportlab&#xa;(falls back to text-only if a blob is missing)" vertex="1">
+          <mxGeometry height="80" width="300" x="790" y="2115" as="geometry" />
+        </mxCell>
+        <mxCell id="n93" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="200 application/pdf&#xa;Content-Disposition: attachment;&#xa;filename=article-{article_id}-v{version}.pdf" vertex="1">
+          <mxGeometry height="80" width="300" x="1120" y="2115" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" edge="1" parent="1" source="n9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" edge="1" parent="1" source="n10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;exitX=1;exitY=0.3;entryX=0;entryY=0.5;" target="n12" value="1. upload_raw_pdf()">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e15" edge="1" parent="1" source="n12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n14" value="2. parse_pdf(content, filename)&#xa;content = raw bytes. Wraps BOTH steps below in ONE&#xa;try/except -&gt; raises PdfParseError on ANY failure&#xa;(corrupt file, encrypted PDF, not actually a PDF, etc.)&#xa;— per-file, not batch. Two separate libraries, not one:">
+          <mxGeometry relative="1" x="0.0105" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e21" edge="1" parent="1" source="n18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;exitX=1;exitY=0.3;entryX=0;entryY=0.5;" target="n20">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e26" edge="1" parent="1" source="n24" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n25">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e29" edge="1" parent="1" source="n25" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n27" value="1a.">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e30" edge="1" parent="1" source="n25" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n28" value="1b.">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e35" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n34" value="2.">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e37" edge="1" parent="1" source="n34" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n36" value="3.">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e39" edge="1" parent="1" source="n36" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n38" value="4.">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e40" edge="1" parent="1" source="n38" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;dashed=1;exitX=1;exitY=0.5;entryX=1;entryY=0.5;" target="n34" value="ValidationError -&amp;gt; retry:&#xa;feedback = error text&#xa;(attempt 2 of 2 — re-enters&#xa;generate_draft())">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e41" edge="1" parent="1" source="n38" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n42" value="valid draft -&amp;gt;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e45" edge="1" parent="1" source="n42" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n44" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e53" edge="1" parent="1" source="n38" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;dashed=1;" target="n52">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e57" edge="1" parent="1" source="n55" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n56">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e59" edge="1" parent="1" source="n56" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n58">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e61" edge="1" parent="1" source="n58" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n60">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e63" edge="1" parent="1" source="n60" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n62">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e65" edge="1" parent="1" source="n62" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n64">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e69" edge="1" parent="1" source="n67" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n68">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e71" edge="1" parent="1" source="n68" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n70">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e73" edge="1" parent="1" source="n70" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n72">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e75" edge="1" parent="1" source="n72" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n74">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e77" edge="1" parent="1" source="n74" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n76">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e81" edge="1" parent="1" source="n79" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n80">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e83" edge="1" parent="1" source="n80" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n82">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e85" edge="1" parent="1" source="n82" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n84">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e88" edge="1" parent="1" source="n86" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n87">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e90" edge="1" parent="1" source="n87" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n89">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e92" edge="1" parent="1" source="n89" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n91">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e94" edge="1" parent="1" source="n91" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n93">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="badge_n24" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontColor=#9673a6;fontSize=9;fontStyle=1;align=center;verticalAlign=middle;dashed=0;" value="Ⓟ Pydantic body" vertex="1">
+          <mxGeometry height="16" width="92" x="134" y="687" as="geometry" />
+        </mxCell>
+        <mxCell id="badge_n55" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontColor=#9673a6;fontSize=9;fontStyle=1;align=center;verticalAlign=middle;dashed=0;" value="Ⓟ Pydantic body" vertex="1">
+          <mxGeometry height="16" width="92" x="134" y="1547" as="geometry" />
+        </mxCell>
+        <mxCell id="badge_n64" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontColor=#9673a6;fontSize=9;fontStyle=1;align=center;verticalAlign=middle;dashed=0;" value="Ⓟ Pydantic model" vertex="1">
+          <mxGeometry height="16" width="92" x="1604" y="1547" as="geometry" />
+        </mxCell>
+        <mxCell id="badge_n67" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontColor=#9673a6;fontSize=9;fontStyle=1;align=center;verticalAlign=middle;dashed=0;" value="Ⓟ Pydantic body" vertex="1">
+          <mxGeometry height="16" width="92" x="134" y="1787" as="geometry" />
+        </mxCell>
+        <mxCell id="badge_n76" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontColor=#9673a6;fontSize=9;fontStyle=1;align=center;verticalAlign=middle;dashed=0;" value="Ⓟ Pydantic model" vertex="1">
+          <mxGeometry height="16" width="92" x="1584" y="1787" as="geometry" />
+        </mxCell>
+        <mxCell id="badge_n84" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontColor=#9673a6;fontSize=9;fontStyle=1;align=center;verticalAlign=middle;dashed=0;" value="Ⓟ Pydantic model" vertex="1">
+          <mxGeometry height="16" width="92" x="1024" y="1997" as="geometry" />
+        </mxCell>
+        <mxCell id="badge_n38" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9673a6;strokeColor=#4d2a5c;fontColor=#ffffff;fontSize=9;fontStyle=1;align=center;verticalAlign=middle;" value="★ Pydantic — explicit retry" vertex="1">
+          <mxGeometry height="16" width="170" x="1226" y="837" as="geometry" />
+        </mxCell>
+        <mxCell id="n8legend" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontColor=#9673a6;fontSize=10;fontStyle=1;align=center;verticalAlign=middle;dashed=0;" value="Ⓟ = Pydantic-validated (auto, FastAPI)" vertex="1">
+          <mxGeometry height="26" width="210" x="1594" y="64" as="geometry" />
+        </mxCell>
+        <mxCell id="n8legend2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9673a6;strokeColor=#4d2a5c;fontColor=#ffffff;fontSize=10;fontStyle=1;align=center;verticalAlign=middle;" value="★ = Pydantic, explicit hand-written retry" vertex="1">
+          <mxGeometry height="26" width="230" x="1594" y="94" as="geometry" />
+        </mxCell>
+        <mxCell id="genloop" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#999999;dashed=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;fontSize=10;fontStyle=2;fontColor=#666666;" value="generation.py: generate_draft_with_retry(sender_ctx, receiver_ctx, feedback) -&amp;gt; (LLMDraft, attempts_used)&#xa;MAX_ATTEMPTS = 2 — everything below is ONE call to generate_draft(), re-entered on retry:" vertex="1">
+          <mxGeometry height="465" width="800" x="870" y="645" as="geometry" />
+        </mxCell>
+        <mxCell id="e27to34" edge="1" parent="1" source="n27" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n34" value="sender_ctx">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e28to34" edge="1" parent="1" source="n28" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="n34" value="receiver_ctx">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="kY0x6B0TBSGiLlAu55VT-2" edge="1" parent="1" source="n48" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.443;entryY=-0.006;entryDx=0;entryDy=0;entryPerimeter=0;" target="n50">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="kY0x6B0TBSGiLlAu55VT-3" connectable="0" parent="kY0x6B0TBSGiLlAu55VT-2" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="&lt;span style=&quot;font-size: 10px;&quot;&gt;9. return ArticleOutput&lt;/span&gt;" vertex="1">
+          <mxGeometry relative="1" x="0.0787" y="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="kY0x6B0TBSGiLlAu55VT-4" edge="1" parent="1" source="n46" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.545;entryY=-0.006;entryDx=0;entryDy=0;entryPerimeter=0;" target="n48">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="kY0x6B0TBSGiLlAu55VT-5" connectable="0" parent="kY0x6B0TBSGiLlAu55VT-4" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="&lt;span style=&quot;font-size: 10px;&quot;&gt;8. save_article() -&amp;gt;&lt;/span&gt;&lt;br style=&quot;font-size: 10px;&quot;&gt;&lt;span style=&quot;font-size: 10px;&quot;&gt;ArticleOutput&lt;/span&gt;" vertex="1">
+          <mxGeometry relative="1" x="0.1167" y="-2" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="kY0x6B0TBSGiLlAu55VT-6" edge="1" parent="1" source="n44" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.25;exitY=0;exitDx=0;exitDy=0;entryX=0.55;entryY=-0.007;entryDx=0;entryDy=0;entryPerimeter=0;" target="n46">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="kY0x6B0TBSGiLlAu55VT-7" connectable="0" parent="kY0x6B0TBSGiLlAu55VT-6" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="&lt;span style=&quot;font-size: 10px;&quot;&gt;7. assemble_article()&lt;/span&gt;&lt;br style=&quot;font-size: 10px;&quot;&gt;&lt;span style=&quot;font-size: 10px;&quot;&gt;(reads get_next_version())&lt;/span&gt;" vertex="1">
+          <mxGeometry relative="1" x="0.1786" y="-2" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="LLMDraft: Schema vs Validators" id="llmdraftschema">
+    <mxGraphModel grid="1" page="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" pageScale="1" pageWidth="1400" pageHeight="980" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#ffffff;fontColor=#000000;align=center;verticalAlign=middle;spacingLeft=8;fontSize=18;fontStyle=1;" value="LLMDraft: what reaches Azure OpenAI as a schema vs. what only Python ever checks" vertex="1">
+          <mxGeometry height="30" width="1320" x="40" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="t2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#ffffff;fontColor=#666666;align=center;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="One Pydantic model, two different enforcement paths — see &#39;System Walkthrough&#39; sheet, /generate lane, steps 2-4 for where this sits." vertex="1">
+          <mxGeometry height="20" width="1320" x="40" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="src" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#000000;align=left;verticalAlign=middle;spacingLeft=10;fontSize=11;" value="LLMDraft(BaseModel) — ALL 7 fields below are LLM-authored, nothing skipped:&#xa;1. headline: str&#xa;2. subheadline: str | None&#xa;3. body_sections: list[BodySection] (2-3 items) — each with heading: str + text: str&#xa;4. call_to_action: str&#xa;5. sender_logo_caption: str&#xa;6. receiver_logo_caption: str&#xa;7. contextual_image_caption: str" vertex="1">
+          <mxGeometry height="140" width="560" x="420" y="70" as="geometry" />
+        </mxCell>
+        <mxCell id="leftHead" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#000000;align=center;verticalAlign=middle;spacingLeft=8;fontSize=11;fontStyle=1;" value="-&gt; becomes JSON Schema in response_format&#xa;SENT to Azure OpenAI — decoder-enforced live, during generation" vertex="1">
+          <mxGeometry height="50" width="480" x="100" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="leftBody" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#000000;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="- Field names + required/optional (str | None = optional)&lt;br&gt;- Data types: str, list[BodySection], nested object shape&lt;br&gt;- body_sections: Field(min_length=2, max_length=3)&lt;br&gt;  -&amp;gt; JSON Schema minItems=2 / maxItems=3&lt;br&gt;  (array LENGTH is schema-expressible, so IS enforced here —&lt;br&gt;   this is why the /generate diagram calls body_sections&#39;&lt;br&gt;   2-3 count &#39;structurally guaranteed&#39;, unlike word counts)&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;div&gt;class LLMDraft(_HeadlineSubheadlineCtaLimits):&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&amp;nbsp; &amp;nbsp; body_sections: list[BodySection] = Field(min_length=2, max_length=3)&lt;/div&gt;&lt;div&gt;&amp;nbsp; &amp;nbsp; sender_logo_caption: str&amp;nbsp; # typically just the sender&#39;s display name&lt;/div&gt;&lt;div&gt;&amp;nbsp; &amp;nbsp; receiver_logo_caption: str&amp;nbsp; # typically just the receiver&#39;s display name&lt;/div&gt;&lt;div&gt;&amp;nbsp; &amp;nbsp; contextual_image_caption: str&amp;nbsp; # describes what the hero image should depict&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="220" width="480" x="100" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="rightHead" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontColor=#000000;align=center;verticalAlign=middle;spacingLeft=8;fontSize=11;fontStyle=1;" value="-&gt; stays as Python @field_validator code&#xa;NEVER sent to Azure OpenAI — the model never sees these rules" vertex="1">
+          <mxGeometry height="50" width="480" x="820" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="rightBody" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontColor=#000000;align=left;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="- headline &lt;=12 words, subheadline &lt;=20 words,&#xa;  call_to_action &lt;=25 words&#xa;- body_sections[].heading &lt;=12 words&#xa;- body_sections[].text &lt;=150 words&#xa;- word_count(v) = len(v.split()) — whitespace tokens,&#xa;  NOT model/LLM tokens&#xa;&#xa;WHY it can&#39;t travel: JSON Schema has no &#39;word count&#39;&#xa;keyword. maxLength counts characters, not words — this&#xa;rule literally cannot be expressed as a schema constraint,&#xa;for ANY Pydantic model, not just this one." vertex="1">
+          <mxGeometry height="220" width="480" x="820" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="parse" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;align=center;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="client.beta.chat.completions.parse(response_format=LLMDraft)&#xa;SDK takes the model&#39;s raw JSON text and constructs&#xa;LLMDraft(**parsed_json) — ONE construction step.&#xa;EVERY validator above runs HERE: left-panel ones redundantly&#xa;(schema already blocked violations), right-panel ones for&#xa;the FIRST time — this is the only place they can run." vertex="1">
+          <mxGeometry height="120" width="500" x="450" y="710" as="geometry" />
+        </mxCell>
+        <mxCell id="ok" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#000000;align=center;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="SUCCESS&#xa;valid LLMDraft object&#xa;returned to generate_draft()" vertex="1">
+          <mxGeometry height="90" width="350" x="250" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="fail" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontColor=#000000;align=center;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="FAILURE: pydantic.ValidationError&#xa;-&gt; fed back as feedback, retried&#xa;(System Walkthrough sheet, /generate lane, step 4)" vertex="1">
+          <mxGeometry height="90" width="350" x="780" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="src" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;exitX=0.25;exitY=1;entryX=0.5;entryY=0;" target="leftHead">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="src" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;exitX=0.75;exitY=1;entryX=0.5;entryY=0;" target="rightHead">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="leftBody" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;exitX=0.7;exitY=1;entryX=0.2;entryY=0;" target="parse">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="rightBody" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;exitX=0.3;exitY=1;entryX=0.8;entryY=0;" target="parse">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="parse" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="ok">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="parse" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;dashed=1;" target="fail">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="notllm" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;align=left;verticalAlign=middle;spacingLeft=10;fontSize=11;dashed=1;" value="NOT in LLMDraft — added afterward, in generation.assemble_article(),&#xa;never written by the model:&#xa;- image_slots: list[ImageSlot] — built by resolve_image_slots() from the&#xa;  3 captions above + blob paths already on file (not authored directly)&#xa;- article_id, version — backend-generated (uuid4(), get_next_version())&#xa;- sender_id, receiver_id, theme — echoed from GenerateRequest (caller input,&#xa;  the model never even sees theme)&#xa;- total_word_count, created_at, status — computed/stamped in Python" vertex="1">
+          <mxGeometry height="150" width="560" x="420" y="225" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="ArticleOutput: Response Schema &amp; Assembly" id="articleoutputschema">
+    <mxGraphModel dx="1815" dy="850" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="980" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="ao_t1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#ffffff;fontColor=#000000;align=center;verticalAlign=middle;spacingLeft=8;fontSize=18;fontStyle=1;" value="ArticleOutput: Response Schema — nothing here is typed by the LLM directly" vertex="1">
+          <mxGeometry height="30" width="1320" x="40" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="ao_t2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#ffffff;fontColor=#666666;align=center;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="Assembled in generation.assemble_article() by merging three sources below, then returned via routers/generate.py — see &#39;System Walkthrough&#39; sheet, /generate lane, steps 7-9." vertex="1">
+          <mxGeometry height="20" width="1320" x="40" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ao_src1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#000000;align=left;verticalAlign=middle;spacingLeft=10;fontSize=11;" value="Source 1: LLMDraft — LLM-authored&#xa;(see &#39;LLMDraft: Schema vs Validators&#39; sheet for full detail)&#xa;&#xa;headline -&gt; ArticleOutput.headline&#xa;subheadline -&gt; ArticleOutput.subheadline&#xa;body_sections -&gt; ArticleOutput.body_sections&#xa;call_to_action -&gt; ArticleOutput.call_to_action&#xa;sender_logo_caption, receiver_logo_caption,&#xa;contextual_image_caption -&gt; feed&#xa;resolve_image_slots() -&gt; ArticleOutput.&#xa;image_slots[].caption&#xa;(blob_path/image_url come from Table/Blob&#xa;Storage, NOT the LLM — System Walkthrough&#xa;sheet, /generate lane, steps 5-6)" vertex="1">
+          <mxGeometry height="240" width="420" x="40" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ao_badge1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontColor=#9673a6;fontSize=9;fontStyle=1;align=center;verticalAlign=middle;dashed=0;" value="Ⓟ Pydantic model" vertex="1">
+          <mxGeometry height="16" width="100" x="40" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ao_src2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontColor=#000000;align=left;verticalAlign=middle;spacingLeft=10;fontSize=11;" value="Source 2: GenerateRequest — caller input,&#xa;echoed straight through&#xa;&#xa;sender_id -&gt; ArticleOutput.sender_id&#xa;receiver_id -&gt; ArticleOutput.receiver_id&#xa;theme (ThemeColors: primary_color,&#xa;secondary_color, accent_color)&#xa;-&gt; ArticleOutput.theme&#xa;&#xa;The LLM never sees theme — it is not part&#xa;of the prompt or of LLMDraft&#39;s schema at all." vertex="1">
+          <mxGeometry height="240" width="420" x="490" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ao_badge2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontColor=#9673a6;fontSize=9;fontStyle=1;align=center;verticalAlign=middle;dashed=0;" value="Ⓟ Pydantic body" vertex="1">
+          <mxGeometry height="16" width="100" x="490" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ao_src3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontColor=#000000;align=left;verticalAlign=middle;spacingLeft=10;fontSize=11;" value="Source 3: freshly computed backend values&#xa;(generation.py + storage.py, no LLM involved)&#xa;&#xa;article_id = uuid4()&#xa;version = storage.get_next_version(&#xa;    sender_id, receiver_id)&#xa;total_word_count = sum of word_count()&#xa;across headline + subheadline +&#xa;body_sections + call_to_action&#xa;(soft 300-600 target — logged, not enforced)&#xa;created_at = datetime.now(timezone.utc)&#xa;status = &quot;draft&quot;  (fixed Literal, no publish&#xa;workflow in this prototype)" vertex="1">
+          <mxGeometry height="240" width="420" x="940" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ao_merge" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;align=center;verticalAlign=middle;spacingLeft=8;fontSize=11;" value="generation.py: assemble_article(request, draft, image_slots) -&gt; ArticleOutput&#xa;called from routers/generate.py, right after resolve_image_slots() (System Walkthrough sheet, /generate lane, step 7)&#xa;ONE construction step — merges all three sources above into a single ArticleOutput object" vertex="1">
+          <mxGeometry height="70" width="760" x="320" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="ao_e1" edge="1" parent="1" source="ao_src1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;exitX=0.5;exitY=1;entryX=0.15;entryY=0;" target="ao_merge">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ao_e2" edge="1" parent="1" source="ao_src2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="ao_merge">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ao_e3" edge="1" parent="1" source="ao_src3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;exitX=0.5;exitY=1;entryX=0.85;entryY=0;" target="ao_merge">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ao_final" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#000000;align=left;verticalAlign=middle;spacingLeft=10;fontSize=11;" value="ArticleOutput(BaseModel) — response body of POST /generate (also returned by /revise)&#xa;field-for-field match of the layout/schema contract in docs/architecture/api-payload-schemas.drawio&#xa;&#xa;article_id: UUID                          image_slots: list[ImageSlot]  (exactly 3, Field(min_length=3, max_length=3))&#xa;sender_id: str                              theme: ThemeColors&#xa;receiver_id: str                           total_word_count: int&#xa;version: int                                 status: Literal[&quot;draft&quot;]&#xa;headline: str                               created_at: datetime&#xa;subheadline: str | None&#xa;body_sections: list[BodySection]  (2-3 items)&#xa;call_to_action: str" vertex="1">
+          <mxGeometry height="180" width="760" x="320" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="ao_badgefinal" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontColor=#9673a6;fontSize=9;fontStyle=1;align=center;verticalAlign=middle;dashed=0;" value="Ⓟ Pydantic model" vertex="1">
+          <mxGeometry height="16" width="100" x="320" y="450" as="geometry" />
+        </mxCell>
+        <mxCell id="ao_e4" edge="1" parent="1" source="ao_merge" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="ao_final" value="9. returns">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ao_note" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#000000;align=left;verticalAlign=middle;spacingLeft=10;fontSize=11;" value="Why the LLM cannot corrupt sender_id, version, or theme: structurally, it never sees those fields.&#xa;LLMDraft&#39;s schema (Source 1) has no sender_id / receiver_id / version / theme field at all — Azure OpenAI&#39;s&#xa;structured-output mode can only return values for fields it was given a schema slot for. Those fields are set&#xa;only in Sources 2 and 3, in plain Python, after client.beta.chat.completions.parse() has already returned.&#xa;There is no validation step &#39;catching&#39; a bad value here — it is not something the LLM could produce in the&#xa;first place. Same logic covers image_slots[].blob_path / image_url: Source 1 only supplies captions." vertex="1">
+          <mxGeometry height="120" width="1320" x="40" y="690" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

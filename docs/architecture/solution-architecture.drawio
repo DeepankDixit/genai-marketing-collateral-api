@@ -1,0 +1,268 @@
+<mxfile host="Electron" pages="2">
+  <diagram name="Solution Architecture and Pipeline Flow" id="arch">
+    <mxGraphModel dx="1783" dy="898" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1650" pageHeight="1300" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;fontSize=20;fontStyle=1;align=center;" value="GenAI Marketing Collateral API - Solution Architecture and Pipeline Flow" vertex="1">
+          <mxGeometry height="30" width="1000" x="40" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="research" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" value="Research Agent (optional / design-only)&#xa;Web search + LLM summarization&#xa;visits Sender and Receiver websites" vertex="1">
+          <mxGeometry height="70" width="220" x="40" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="contextpdfs" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Context PDFs&#xa;Sender: offerings/differentiators&#xa;Receiver: pain points/challenges&#xa;(~2-4 pages each)" vertex="1">
+          <mxGeometry height="70" width="220" x="320" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="uploadep" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Upload Endpoint (1 of 3)&#xa;FastAPI backend&#xa;Pydantic request validation" vertex="1">
+          <mxGeometry height="70" width="220" x="600" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="blobraw" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="Azure Blob Storage&#xa;Raw PDFs, keyed by document_id" vertex="1">
+          <mxGeometry height="70" width="220" x="880" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="parsing" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="Document Ingestion / Parsing Pipeline&#xa;Extract text, tables, images&#xa;(pymupdf / Azure Document Intelligence)" vertex="1">
+          <mxGeometry height="70" width="220" x="880" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="blobimages" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="Azure Blob Storage&#xa;Extracted images (separate blobs)" vertex="1">
+          <mxGeometry height="70" width="220" x="1160" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="cosmos" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="Azure Table Storage (metadata store)&#xa;PartitionKey = sender_id__receiver_id, RowKey = document_id&#xa;parsed text + tables (JSON) + image blob-path refs" vertex="1">
+          <mxGeometry height="80" width="220" x="880" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="generateep" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Generate Endpoint (2 of 3)&#xa;FastAPI backend&#xa;fetch by sender_id + receiver_id" vertex="1">
+          <mxGeometry height="80" width="220" x="600" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="prompt" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="Build Prompt&#xa;system prompt + parsed context&#xa;+ Pydantic output schema" vertex="1">
+          <mxGeometry height="80" width="220" x="320" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="aoai" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="Azure OpenAI Service (GPT-4o-mini)&#xa;single-shot, sequential generation&#xa;structured JSON output" vertex="1">
+          <mxGeometry height="80" width="220" x="40" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="pydvalidate" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="Pydantic Validation (deterministic)&#xa;word limits, required fields, image slot count&#xa;internal to /generate only - auto-retry on failure" vertex="1">
+          <mxGeometry height="80" width="220" x="40" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="storev1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="Store Generated Article (vN)&#xa;Blob Storage + Table Storage reference" vertex="1">
+          <mxGeometry height="70" width="220" x="320" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="genresponse" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Generate Response&#xa;structured JSON returned to caller&#xa;(/generate ends here - no auto-eval)" vertex="1">
+          <mxGeometry height="70" width="220" x="320" y="510" as="geometry" />
+        </mxCell>
+        <mxCell id="evalep" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="Evaluate Endpoint (3 of 3)&#xa;deterministic re-check +&#xa;LLM-as-judge (groundedness,&#xa;relevance, coherence)" vertex="1">
+          <mxGeometry height="80" width="220" x="600" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="evalnote" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;dashed=1;fontSize=11;fontStyle=2;align=left;spacingLeft=6;" value="Generate and Evaluate are fully decoupled endpoints - no internal call either way. Connected only by a shared feedback contract: Evaluate&#39;s response.feedback has the same shape as Generate&#39;s request.feedback." vertex="1">
+          <mxGeometry height="55" width="340" x="600" y="510" as="geometry" />
+        </mxCell>
+        <mxCell id="decision" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="Score &gt;= threshold?" vertex="1">
+          <mxGeometry height="90" width="180" x="880" y="415" as="geometry" />
+        </mxCell>
+        <mxCell id="refine" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;dashed=1;" value="Feedback -&gt; new /generate call&#xa;caller re-invokes /generate with&#xa;evaluate&#39;s feedback appended as&#xa;additional instructions (new version)" vertex="1">
+          <mxGeometry height="90" width="220" x="1160" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="finalize" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Evaluate Response: Passed&#xa;Serve structured JSON&#xa;(+ optional rendered artifact)" vertex="1">
+          <mxGeometry height="70" width="220" x="1160" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="download" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Download / API Response&#xa;to end user" vertex="1">
+          <mxGeometry height="70" width="200" x="1400" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="infraTitle" parent="1" style="text;html=1;fontSize=16;fontStyle=1;align=left;" value="Infrastructure and Cloud Services (Azure)" vertex="1">
+          <mxGeometry height="30" width="500" x="40" y="600" as="geometry" />
+        </mxCell>
+        <mxCell id="infra1a" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" value="Hosting - Phase 1 (build/validate)&#xa;Azure App Service&#xa;git-push deploy, no Docker - prove&#xa;functionality is correct first" vertex="1">
+          <mxGeometry height="90" width="260" x="40" y="640" as="geometry" />
+        </mxCell>
+        <mxCell id="infra1b" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" value="Hosting - Phase 2 (prod flavor)&#xa;Azure Container Apps&#xa;Dockerfile -&gt; ACR -&gt; revision;&#xa;shown deliberately " vertex="1">
+          <mxGeometry height="90" width="260" x="340" y="640" as="geometry" />
+        </mxCell>
+        <mxCell id="infraHostArrow" edge="1" parent="1" source="infra1a" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=10;" target="infra1b" value="migrate once endpoints validated">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="infraAKSnote" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;dashed=1;fontSize=10;fontStyle=2;" value="AKS: production-scale alternative, described only -&#xa;cluster/networking overhead not justified for this timeline" vertex="1">
+          <mxGeometry height="50" width="260" x="340" y="740" as="geometry" />
+        </mxCell>
+        <mxCell id="infra2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" value="IAM: Managed Identity + scoped RBAC&#xa;(no hardcoded secrets/connection strings)&#xa;- applies to both hosting phases" vertex="1">
+          <mxGeometry height="90" width="280" x="640" y="640" as="geometry" />
+        </mxCell>
+        <mxCell id="infra3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" value="Secrets: Azure Key Vault for Azure OpenAI key&#xa;(read via Managed Identity; optionally skip the&#xa;key entirely via Entra ID auth to Azure OpenAI)" vertex="1">
+          <mxGeometry height="90" width="300" x="960" y="640" as="geometry" />
+        </mxCell>
+        <mxCell id="infra4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" value="API exposure: App Service default domain (Phase 1)&#xa;-&gt; Container Apps built-in ingress (Phase 2)&#xa;(future: Azure API Management for auth/rate-limiting)" vertex="1">
+          <mxGeometry height="90" width="300" x="1300" y="640" as="geometry" />
+        </mxCell>
+        <mxCell id="infra5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" value="CI/CD (two-phase): GitHub Actions -&gt; Azure App Service (zip/git deploy, Phase 1)&#xa;then GitHub Actions -&gt; Azure Container Registry (ACR) -&gt; Container App revision update (Phase 2), both on push to main" vertex="1">
+          <mxGeometry height="80" width="900" x="40" y="810" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="research" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" target="contextpdfs">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="contextpdfs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" target="uploadep">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="uploadep" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" target="blobraw">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="blobraw" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" target="parsing">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="parsing" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" target="blobimages">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="parsing" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" target="cosmos">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="cosmos" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" target="generateep">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="generateep" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" target="prompt">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="1" source="prompt" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" target="aoai">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" edge="1" parent="1" source="aoai" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" target="pydvalidate">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" edge="1" parent="1" source="pydvalidate" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" target="storev1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e18" edge="1" parent="1" source="storev1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" target="genresponse">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" edge="1" parent="1" source="storev1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;fontSize=10;" target="evalep" value="separate caller-triggered call&#xa;(article_version_id)">
+          <mxGeometry relative="1" x="-0.4" y="22" as="geometry">
+            <mxPoint x="-12" y="-20" as="offset" />
+            <Array as="points">
+              <mxPoint x="570" y="420" />
+              <mxPoint x="570" y="460" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e13" edge="1" parent="1" source="evalep" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" target="decision">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" edge="1" parent="1" source="decision" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" target="refine" value="No">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1060" y="400" />
+              <mxPoint x="1270" y="400" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e15" edge="1" parent="1" source="refine" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;fontSize=10;" target="prompt" value="new /generate request, feedback appended">
+          <mxGeometry relative="1" x="0.3053" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="1270" y="240" />
+              <mxPoint x="430" y="240" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e16" edge="1" parent="1" source="decision" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" target="finalize" value="Yes">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1130" y="460" />
+              <mxPoint x="1130" y="460" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e17" edge="1" parent="1" source="finalize" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" target="download">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Additional Endpoints - Revise, Browse, Export" id="archextra">
+    <mxGraphModel dx="1603" dy="898" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="s2title" parent="1" style="text;html=1;fontSize=20;fontStyle=1;align=center;" value="GenAI Marketing Collateral API - Additional Endpoints Beyond the Brief&#39;s Literal Two (post-demo, 2026-07-31)" vertex="1">
+          <mxGeometry height="30" width="1120" x="40" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="s2source" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=middle;spacingLeft=8;fillColor=#ffe6cc;strokeColor=#d79b00;" value="Azure Table Storage - table &quot;articles&quot;  (the same table Sheet 1&#39;s POST /generate already writes to)&#xa;PartitionKey = sender_id__receiver_id, RowKey = article_id - read here via storage.get_article() / storage.list_articles()" vertex="1">
+          <mxGeometry height="70" width="1080" x="40" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="s2listep" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="GET /articles endpoint&#xa;routers/articles.py: get_articles()&#xa;query params: sender_id, receiver_id" vertex="1">
+          <mxGeometry height="70" width="280" x="40" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="s2listresp" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="list_articles(sender_id, receiver_id)&#xa;-&gt; ArticleListResponse&#xa;articles: List[ArticleOutput], newest first&#xa;(both /generate and /revise rows included)&#xa;empty list, not 404, if none exist yet" vertex="1">
+          <mxGeometry height="110" width="280" x="40" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="s2reviseep" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="POST /articles/{article_id}/revise endpoint&#xa;routers/articles.py: revise_article()" vertex="1">
+          <mxGeometry height="70" width="340" x="400" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="s2reviselookup" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="get_article(article_id)&#xa;404 if article_id not found" vertex="1">
+          <mxGeometry height="60" width="340" x="400" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="s2reviseassemble" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="assemble_revised_article(original, revision)&#xa;merges the edited fields onto the original;&#xa;sender_id / receiver_id / theme / image&#xa;blob_path+image_url are always taken from&#xa;the original - never from the request body" vertex="1">
+          <mxGeometry height="100" width="340" x="400" y="370" as="geometry" />
+        </mxCell>
+        <mxCell id="s2revisevalidate" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="Pydantic validation (deterministic)&#xa;same _HeadlineSubheadlineCtaLimits +&#xa;BodySection word-limit validators&#xa;that POST /generate&#39;s LLMDraft uses" vertex="1">
+          <mxGeometry height="90" width="340" x="400" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="s2revisesave" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="save_article() -&gt; new row&#xa;next version via get_next_version()&#xa;append-only, same pattern POST /generate&#xa;uses for regeneration - v1/v2/v3... coexist" vertex="1">
+          <mxGeometry height="90" width="340" x="400" y="600" as="geometry" />
+        </mxCell>
+        <mxCell id="s2reviseresp" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Response: ArticleOutput&#xa;(new article_id + incremented version)" vertex="1">
+          <mxGeometry height="60" width="340" x="400" y="710" as="geometry" />
+        </mxCell>
+        <mxCell id="s2pdfep" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="GET /articles/{article_id}/pdf endpoint&#xa;routers/articles.py: export_article_pdf()" vertex="1">
+          <mxGeometry height="70" width="300" x="800" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="s2pdflookup" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="get_article(article_id)&#xa;same lookup /revise uses - 404 if not found" vertex="1">
+          <mxGeometry height="60" width="300" x="800" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="s2pdfbuild" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="pdf_export.build_pdf(article)&#xa;reportlab platypus flowables&#xa;(pure Python, no native system libs -&#xa;works on App Service unchanged)" vertex="1">
+          <mxGeometry height="90" width="300" x="800" y="370" as="geometry" />
+        </mxCell>
+        <mxCell id="s2pdfimages" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="download_blob_bytes() for logo/hero images&#xa;real bytes embedded, best-effort;&#xa;falls back to a bracketed-caption placeholder&#xa;if the download fails or no blob_path exists" vertex="1">
+          <mxGeometry height="100" width="300" x="800" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="s2pdfresp" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Response: binary application/pdf&#xa;Content-Disposition: attachment&#xa;(the one non-JSON response in this API)" vertex="1">
+          <mxGeometry height="70" width="300" x="800" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="s2note" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontSize=11;fontStyle=2;spacingLeft=8;spacingTop=6;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" value="All 3 endpoints on this sheet are read-only or additive against articles Sheet 1&#39;s POST /generate already produced - none of them call /generate or /evaluate, and neither /generate nor /evaluate calls any of these. Deliberate scope additions beyond the brief&#39;s literal &quot;upload&quot; + &quot;generate&quot; pair (decision-log.md §19 revise, §20 PDF export), reusing Sheet 1&#39;s same append-only versioning and validate-before-persist discipline rather than inventing a second design." vertex="1">
+          <mxGeometry height="80" width="1080" x="40" y="800" as="geometry" />
+        </mxCell>
+        <mxCell id="s2e1" edge="1" parent="1" source="s2source" target="s2listep" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.13;exitY=1;entryX=0.5;entryY=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="s2e2" edge="1" parent="1" source="s2source" target="s2reviseep" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="s2e3" edge="1" parent="1" source="s2source" target="s2pdfep" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.87;exitY=1;entryX=0.5;entryY=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="s2e4" edge="1" parent="1" source="s2listep" target="s2listresp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="s2e5" edge="1" parent="1" source="s2reviseep" target="s2reviselookup" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="s2e6" edge="1" parent="1" source="s2reviselookup" target="s2reviseassemble" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="s2e7" edge="1" parent="1" source="s2reviseassemble" target="s2revisevalidate" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="s2e8" edge="1" parent="1" source="s2revisevalidate" target="s2revisesave" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="s2e9" edge="1" parent="1" source="s2revisesave" target="s2reviseresp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="s2e10" edge="1" parent="1" source="s2pdfep" target="s2pdflookup" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="s2e11" edge="1" parent="1" source="s2pdflookup" target="s2pdfbuild" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="s2e12" edge="1" parent="1" source="s2pdfbuild" target="s2pdfimages" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="s2e13" edge="1" parent="1" source="s2pdfimages" target="s2pdfresp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

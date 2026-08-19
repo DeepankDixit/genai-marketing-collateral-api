@@ -1,0 +1,95 @@
+<mxfile host="Electron">
+  <diagram name="API Request-Response Payload Schemas" id="payload">
+    <mxGraphModel dx="3224" dy="1077" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="2500" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;fontSize=20;fontStyle=1;align=center;" value="GenAI Marketing Collateral API - API Request/Response Payload Schemas (all 6 endpoints, cross-checked vs. repo 2026-07-31)" vertex="1">
+          <mxGeometry height="30" width="1200" x="40" y="10" as="geometry" />
+        </mxCell>
+
+        <mxCell id="h1" parent="1" style="text;html=1;fontSize=15;fontStyle=1;align=left;" value="1. POST /upload" vertex="1">
+          <mxGeometry height="25" width="300" x="40" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="uploadreq" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=12;spacingLeft=8;spacingTop=6;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="POST /upload - Request (multipart/form-data)&#xa;&#xa;sender_id: str&#xa;receiver_id: str&#xa;role: Literal[&quot;sender&quot;, &quot;receiver&quot;]&#xa;files: List[UploadFile]  (application/pdf, 1..N)" vertex="1">
+          <mxGeometry height="150" width="480" x="40" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uploadresp" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=12;spacingLeft=8;spacingTop=6;fillColor=#d5e8d4;strokeColor=#82b366;" value="Response 200 - UploadResponse&#xa;&#xa;results: List[DocumentIngestResult]&#xa;  - document_id: UUID&#xa;  - sender_id: str&#xa;  - receiver_id: str&#xa;  - role: str&#xa;  - filename: str&#xa;  - status: Literal[&quot;parsed&quot;, &quot;failed&quot;]&#xa;  - pages_extracted: int&#xa;  - tables_extracted: int&#xa;  - images_extracted: int&#xa;  - error: Optional[str]  (set if status==&quot;failed&quot;)&#xa;  - uploaded_at: datetime" vertex="1">
+          <mxGeometry height="290" width="620" x="580" y="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="h2" parent="1" style="text;html=1;fontSize=15;fontStyle=1;align=left;" value="2. POST /generate" vertex="1">
+          <mxGeometry height="25" width="300" x="40" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="generatereq" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=12;spacingLeft=8;spacingTop=6;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="POST /generate - Request&#xa;&#xa;sender_id: str  (matches a prior /upload role=&quot;sender&quot;)&#xa;receiver_id: str  (matches a prior /upload role=&quot;receiver&quot;)&#xa;theme: ThemeColors&#xa;  - primary_color: str  (6-digit hex, e.g. &quot;#1B3A5C&quot;)&#xa;  - secondary_color: str&#xa;  - accent_color: str&#xa;feedback: Optional[str] = None&#xa;  (plain text instruction; same shape as&#xa;   EvaluationResult.feedback below)" vertex="1">
+          <mxGeometry height="220" width="480" x="40" y="440" as="geometry" />
+        </mxCell>
+        <mxCell id="generateresp" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=12;spacingLeft=8;spacingTop=6;fillColor=#d5e8d4;strokeColor=#82b366;" value="Response 200 - ArticleOutput&#xa;&#xa;article_id: UUID&#xa;sender_id: str&#xa;receiver_id: str&#xa;version: int  (auto-incremented per sender/receiver pair)&#xa;headline: str  (&lt;= 12 words)&#xa;subheadline: Optional[str]  (&lt;= 20 words)&#xa;body_sections: List[BodySection]  (2-3 items)&#xa;  - heading: str&#xa;  - text: str  (&lt;= 150 words per section)&#xa;call_to_action: str  (&lt;= 25 words)&#xa;image_slots: List[ImageSlot]  (fixed count = 3)&#xa;  - slot_id: Literal[&quot;logo_sender&quot;,&quot;logo_receiver&quot;,&quot;hero_contextual&quot;]&#xa;  - source_type: Literal[&quot;sender_logo&quot;,&quot;receiver_logo&quot;,&quot;contextual&quot;]&#xa;  - blob_path: Optional[str]&#xa;  - image_url: Optional[str]  (short-lived SAS URL, 6h expiry)&#xa;  - caption: str&#xa;theme: ThemeColors  (echoed from request)&#xa;total_word_count: int  (target 300-600, soft check)&#xa;status: Literal[&quot;draft&quot;]&#xa;created_at: datetime" vertex="1">
+          <mxGeometry height="460" width="620" x="580" y="440" as="geometry" />
+        </mxCell>
+
+        <mxCell id="h3" parent="1" style="text;html=1;fontSize=15;fontStyle=1;align=left;" value="3. POST /evaluate" vertex="1">
+          <mxGeometry height="25" width="300" x="40" y="940" as="geometry" />
+        </mxCell>
+        <mxCell id="evaluatereq" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=12;spacingLeft=8;spacingTop=6;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="POST /evaluate - Request&#xa;&#xa;article_id: UUID  (references a stored ArticleOutput&#xa;  version -- the same ID /revise and&#xa;  GET /articles/{id}/pdf use)" vertex="1">
+          <mxGeometry height="100" width="480" x="40" y="970" as="geometry" />
+        </mxCell>
+        <mxCell id="evaluateresp" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=12;spacingLeft=8;spacingTop=6;fillColor=#d5e8d4;strokeColor=#82b366;" value="Response 200 - EvaluationResult&#xa;&#xa;article_id: UUID&#xa;version: int&#xa;groundedness: float  (0.0-1.0 -- every claim traceable&#xa;  to SENDER/RECEIVER context on file)&#xa;relevance: float  (0.0-1.0 -- speaks to receiver&#39;s&#xa;  actual context, not generic copy)&#xa;coherence: float  (0.0-1.0 -- tone/flow/structure)&#xa;overall_score: float  (plain mean of the 3 above --&#xa;  not weighted, by design)&#xa;threshold: float  (default 0.75, env-overridable)&#xa;passed: bool  (overall_score &gt;= threshold)&#xa;feedback: str  (single AI-composed paragraph -- same&#xa;  shape as GenerateRequest.feedback above)&#xa;evaluated_at: datetime&#xa;&#xa;No deterministic re-check here: ArticleOutput&#39;s word&#xa;limits/schema are already Pydantic-validated at&#xa;/generate or /revise time (decision-log.md §9a).&#xa;Not persisted -- computed fresh on every call." vertex="1">
+          <mxGeometry height="380" width="620" x="580" y="970" as="geometry" />
+        </mxCell>
+
+        <mxCell id="h4" parent="1" style="text;html=1;fontSize=15;fontStyle=1;align=left;" value="4. POST /articles/{article_id}/revise" vertex="1">
+          <mxGeometry height="25" width="500" x="40" y="1390" as="geometry" />
+        </mxCell>
+        <mxCell id="revisereq" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=12;spacingLeft=8;spacingTop=6;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="POST /articles/{article_id}/revise - Request&#xa;&#xa;headline: str  (&lt;= 12 words)&#xa;subheadline: Optional[str]  (&lt;= 20 words)&#xa;call_to_action: str  (&lt;= 25 words)&#xa;body_sections: List[BodySection]  (2-3 items)&#xa;  - heading: str&#xa;  - text: str  (&lt;= 150 words per section)&#xa;image_captions: dict[slot_id, str] = {}&#xa;  (keyed by ImageSlotId; only slots being&#xa;   edited need to be included)&#xa;&#xa;No sender_id / receiver_id / theme / article_id /&#xa;version / created_at / blob_path / image_url fields --&#xa;structurally impossible to submit; always carried&#xa;over from the original article server-side." vertex="1">
+          <mxGeometry height="320" width="480" x="40" y="1420" as="geometry" />
+        </mxCell>
+        <mxCell id="reviseresp" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=12;spacingLeft=8;spacingTop=6;fillColor=#d5e8d4;strokeColor=#82b366;" value="Response 200 - ArticleOutput&#xa;&#xa;Same shape as POST /generate&#39;s response above.&#xa;&#xa;A new article_id + next version are assigned&#xa;(append-only, same pattern /generate uses for&#xa;regeneration -- v1/v2/v3... all coexist).&#xa;&#xa;sender_id, receiver_id, theme, and every image&#xa;slot&#39;s blob_path/image_url are carried over&#xa;unchanged from the original article -- never&#xa;taken from this request." vertex="1">
+          <mxGeometry height="260" width="620" x="580" y="1420" as="geometry" />
+        </mxCell>
+
+        <mxCell id="h5" parent="1" style="text;html=1;fontSize=15;fontStyle=1;align=left;" value="5. GET /articles" vertex="1">
+          <mxGeometry height="25" width="300" x="40" y="1780" as="geometry" />
+        </mxCell>
+        <mxCell id="articlesreq" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=12;spacingLeft=8;spacingTop=6;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="GET /articles - Request (query params, no body)&#xa;&#xa;sender_id: str&#xa;receiver_id: str" vertex="1">
+          <mxGeometry height="100" width="480" x="40" y="1810" as="geometry" />
+        </mxCell>
+        <mxCell id="articlesresp" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=12;spacingLeft=8;spacingTop=6;fillColor=#d5e8d4;strokeColor=#82b366;" value="Response 200 - ArticleListResponse&#xa;&#xa;articles: List[ArticleOutput]&#xa;  (every version generated so far for this&#xa;   sender/receiver pair, newest first --&#xa;   both /generate and /revise rows included)&#xa;&#xa;Empty list (not 404) if nothing generated yet&#xa;for this pair." vertex="1">
+          <mxGeometry height="180" width="620" x="580" y="1810" as="geometry" />
+        </mxCell>
+
+        <mxCell id="h6" parent="1" style="text;html=1;fontSize=15;fontStyle=1;align=left;" value="6. GET /articles/{article_id}/pdf" vertex="1">
+          <mxGeometry height="25" width="500" x="40" y="2020" as="geometry" />
+        </mxCell>
+        <mxCell id="pdfreq" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=12;spacingLeft=8;spacingTop=6;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="GET /articles/{article_id}/pdf - Request&#xa;&#xa;article_id: UUID  (path param, no body)" vertex="1">
+          <mxGeometry height="90" width="480" x="40" y="2050" as="geometry" />
+        </mxCell>
+        <mxCell id="pdfresp" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=12;spacingLeft=8;spacingTop=6;fillColor=#d5e8d4;strokeColor=#82b366;" value="Response 200 - application/pdf (binary, NOT JSON)&#xa;&#xa;Content-Disposition: attachment;&#xa;  filename=&quot;article-{article_id}-v{version}.pdf&quot;&#xa;&#xa;Server-side rendered via reportlab from the&#xa;already-stored ArticleOutput -- read-only, never&#xa;regenerates or re-validates content. Real logo/hero&#xa;image bytes embedded (best-effort; falls back to a&#xa;bracketed caption placeholder if a download fails)." vertex="1">
+          <mxGeometry height="210" width="620" x="580" y="2050" as="geometry" />
+        </mxCell>
+
+        <mxCell id="notes" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontSize=11;fontStyle=2;spacingLeft=8;spacingTop=6;fillColor=#fff2cc;strokeColor=#d6b656;dashed=1;" value="Assumptions and scope notes (cross-checked against repo as of 2026-07-31):&#xa;- 6 endpoints total, not the brief&#39;s literal 2 -- /evaluate, /revise, GET /articles and GET /articles/{id}/pdf are&#xa;  deliberate scope additions beyond &quot;upload&quot; + &quot;generate&quot; (decision-log.md §9, §19, §20), not scope creep.&#xa;- 3 fixed image slots (sender logo, receiver logo, 1 contextual image); theme colors are caller-supplied input,&#xa;  never LLM-authored; eval overall_score is a plain, unweighted mean of 3 sub-scores against a 0.75 threshold.&#xa;- feedback is a plain str end-to-end (GenerateRequest.feedback &lt;-&gt; EvaluationResult.feedback) -- one shared&#xa;  contract, not two shapes that need reshaping between endpoints.&#xa;- GET /articles/{id}/pdf is the one response in this API that is not a Pydantic model / not JSON." vertex="1">
+          <mxGeometry height="150" width="1160" x="40" y="2300" as="geometry" />
+        </mxCell>
+
+        <mxCell id="linkA" edge="1" parent="1" source="generateresp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;fontSize=10;exitX=1;exitY=0.5;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="evaluatereq" value="article_id">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1260" y="670" />
+              <mxPoint x="1260" y="940" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="linkB" edge="1" parent="1" source="evaluateresp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;fontSize=10;exitX=0;exitY=0.5;entryX=0;entryY=0.5;" target="generatereq" value="feedback (identical str shape both ways)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="10" y="1160" />
+              <mxPoint x="10" y="550" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
+

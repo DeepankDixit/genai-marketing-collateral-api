@@ -1,0 +1,121 @@
+<mxfile host="Electron">
+  <diagram name="Pydantic Model Validation Map" id="pydantic">
+    <mxGraphModel dx="3224" dy="1077" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="1850" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;fontSize=20;fontStyle=1;align=center;" value="GenAI Marketing Collateral API - Pydantic Model Validation Map (per endpoint, 2026-07-31)" vertex="1">
+          <mxGeometry height="30" width="1200" x="40" y="10" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;fillColor=#f5f5f5;strokeColor=#666666;" value="Every endpoint's request AND response are typed Pydantic models -- FastAPI validates automatically at the API boundary (422 if the request fails, and the handler literally cannot return an object that doesn't match response_model). Blue = INPUT model (validates what the caller sent). Purple = INTERNAL model (validates the raw Azure OpenAI structured-output response BEFORE it's allowed to become part of anything returned -- the &quot;don't trust the LLM's JSON&quot; layer, only present on /generate and /evaluate). Green = OUTPUT model (validates what's about to be sent back). Grey = not a Pydantic model at all." vertex="1">
+          <mxGeometry height="90" width="1200" x="40" y="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="h1" parent="1" style="text;html=1;fontSize=15;fontStyle=1;align=left;" value="1. POST /upload" vertex="1">
+          <mxGeometry height="25" width="300" x="40" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="up_in" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=11;spacingLeft=8;spacingTop=6;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="INPUT validation (per request)&#xa;&#xa;sender_id: str (Form)&#xa;receiver_id: str (Form)&#xa;role: Role = Literal[&quot;sender&quot;,&quot;receiver&quot;] (Form)&#xa;  -- FastAPI 422s automatically if role is&#xa;  anything else&#xa;files: List[UploadFile]  (multipart)&#xa;&#xa;No single Pydantic *body* model here -- these&#xa;are individual Form(...)/File(...) params, each&#xa;still type/enum-validated by FastAPI." vertex="1">
+          <mxGeometry height="190" width="320" x="40" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="up_int" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=11;spacingLeft=8;spacingTop=6;fillColor=#e1d5e7;strokeColor=#9673a6;" value="Internal contract: ParsedDocument&#xa;(not an LLM call -- parsing.py's own output)&#xa;&#xa;text: str&#xa;tables: list[list[list[str]]]&#xa;page_count: int&#xa;images: list[ExtractedImage]&#xa;&#xa;Built by parsing.py, consumed by storage.py --&#xa;if parsing ever produced the wrong shape, this&#xa;raises immediately instead of a bad object&#xa;flowing downstream silently." vertex="1">
+          <mxGeometry height="190" width="320" x="400" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="up_out" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=11;spacingLeft=8;spacingTop=6;fillColor=#d5e8d4;strokeColor=#82b366;" value="OUTPUT validation: UploadResponse&#xa;&#xa;results: List[DocumentIngestResult]&#xa;  - status: Literal[&quot;parsed&quot;,&quot;failed&quot;]&#xa;  - pages/tables/images_extracted: int&#xa;  - error: Optional[str]&#xa;&#xa;FastAPI validates this against&#xa;response_model=UploadResponse before the&#xa;JSON is ever sent to the caller." vertex="1">
+          <mxGeometry height="190" width="440" x="760" y="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="h2" parent="1" style="text;html=1;fontSize=15;fontStyle=1;align=left;" value="2. POST /generate" vertex="1">
+          <mxGeometry height="25" width="300" x="40" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="gen_in" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=11;spacingLeft=8;spacingTop=6;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="INPUT validation: GenerateRequest&#xa;&#xa;sender_id / receiver_id: str&#xa;theme: ThemeColors&#xa;  -- @field_validator: 6-digit hex&#xa;    (e.g. &quot;#1B3A5C&quot;) on all 3 colors&#xa;feedback: Optional[str]&#xa;&#xa;FastAPI 422s the request before the handler&#xa;even runs if this fails." vertex="1">
+          <mxGeometry height="230" width="320" x="40" y="450" as="geometry" />
+        </mxCell>
+        <mxCell id="gen_int" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=11;spacingLeft=8;spacingTop=6;fillColor=#e1d5e7;strokeColor=#9673a6;" value="INTERNAL validation: LLMDraft&#xa;(response_format for Azure OpenAI)&#xa;&#xa;headline &lt;=12 words, subheadline &lt;=20,&#xa;call_to_action &lt;=25  (word-count validators)&#xa;body_sections: 2-3 items (Field length)&#xa;  - heading &lt;=12 words  (added 2026-07-31 --&#xa;    see notes below, was previously unchecked)&#xa;  - text &lt;=150 words&#xa;&#xa;ValidationError here triggers ONE retry with&#xa;the error fed back to the model&#xa;(generate_draft_with_retry, max 2 attempts) --&#xa;the layer that stops a bad LLM response from&#xa;ever reaching the caller." vertex="1">
+          <mxGeometry height="230" width="320" x="400" y="450" as="geometry" />
+        </mxCell>
+        <mxCell id="gen_out" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=11;spacingLeft=8;spacingTop=6;fillColor=#d5e8d4;strokeColor=#82b366;" value="OUTPUT validation: ArticleOutput&#xa;&#xa;Assembled from LLMDraft + GenerateRequest +&#xa;computed fields (article_id, version,&#xa;total_word_count, created_at).&#xa;image_slots: exactly 3 (Field min/max=3)&#xa;&#xa;FastAPI validates the assembled object&#xa;against response_model=ArticleOutput as a&#xa;final check before it's ever returned." vertex="1">
+          <mxGeometry height="230" width="440" x="760" y="450" as="geometry" />
+        </mxCell>
+
+        <mxCell id="h3" parent="1" style="text;html=1;fontSize=15;fontStyle=1;align=left;" value="3. POST /evaluate" vertex="1">
+          <mxGeometry height="25" width="300" x="40" y="710" as="geometry" />
+        </mxCell>
+        <mxCell id="eval_in" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=11;spacingLeft=8;spacingTop=6;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="INPUT validation: EvaluateRequest&#xa;&#xa;article_id: UUID&#xa;&#xa;FastAPI 422s on anything that isn't a valid&#xa;UUID string before the handler runs." vertex="1">
+          <mxGeometry height="190" width="320" x="40" y="740" as="geometry" />
+        </mxCell>
+        <mxCell id="eval_int" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=11;spacingLeft=8;spacingTop=6;fillColor=#e1d5e7;strokeColor=#9673a6;" value="INTERNAL validation: JudgeDraft&#xa;(response_format for Azure OpenAI)&#xa;&#xa;groundedness / relevance / coherence:&#xa;  float, Field(ge=0, le=1)&#xa;feedback: str&#xa;&#xa;No retry loop here -- Field(ge=0,le=1) is&#xa;already enforced by structured-output mode's&#xa;JSON Schema, so there's no post-hoc failure&#xa;mode the way LLMDraft's word counts have." vertex="1">
+          <mxGeometry height="190" width="320" x="400" y="740" as="geometry" />
+        </mxCell>
+        <mxCell id="eval_out" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=11;spacingLeft=8;spacingTop=6;fillColor=#d5e8d4;strokeColor=#82b366;" value="OUTPUT validation: EvaluationResult&#xa;&#xa;overall_score = mean(groundedness, relevance,&#xa;  coherence)&#xa;passed = overall_score &gt;= threshold&#xa;&#xa;No deterministic re-check of ArticleOutput&#xa;itself here -- its own schema was already&#xa;Pydantic-validated the moment it was&#xa;generated or revised (see rows 2 and 4)." vertex="1">
+          <mxGeometry height="190" width="440" x="760" y="740" as="geometry" />
+        </mxCell>
+
+        <mxCell id="h4" parent="1" style="text;html=1;fontSize=15;fontStyle=1;align=left;" value="4. POST /articles/{article_id}/revise" vertex="1">
+          <mxGeometry height="25" width="500" x="40" y="960" as="geometry" />
+        </mxCell>
+        <mxCell id="rev_in" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=11;spacingLeft=8;spacingTop=6;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="INPUT validation: ArticleRevisionRequest&#xa;&#xa;headline / subheadline / call_to_action&#xa;  (shared _HeadlineSubheadlineCtaLimits base&#xa;   class -- same word limits as LLMDraft,&#xa;   one definition, not two)&#xa;body_sections: List[BodySection], 2-3 items&#xa;  - heading &lt;=12 words  (added 2026-07-31)&#xa;  - text &lt;=150 words&#xa;image_captions: dict[slot_id, str]&#xa;&#xa;sender_id/receiver_id/theme/article_id/&#xa;version/created_at/blob_path/image_url are&#xa;NOT fields on this model at all -- structurally&#xa;impossible to submit, not just filtered." vertex="1">
+          <mxGeometry height="230" width="320" x="40" y="990" as="geometry" />
+        </mxCell>
+        <mxCell id="rev_none" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fontFamily=Courier New;fontSize=11;fontStyle=2;fillColor=#ffffff;strokeColor=#999999;dashed=1;" value="(no internal / LLM model --&#xa;/revise never calls Azure OpenAI,&#xa;it's a pure hand-edit merge)" vertex="1">
+          <mxGeometry height="80" width="320" x="400" y="1055" as="geometry" />
+        </mxCell>
+        <mxCell id="rev_out" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=11;spacingLeft=8;spacingTop=6;fillColor=#d5e8d4;strokeColor=#82b366;" value="OUTPUT validation: ArticleOutput&#xa;&#xa;Same response_model as /generate (row 2).&#xa;assemble_revised_article() carries&#xa;sender_id/receiver_id/theme/image slots over&#xa;from the original article untouched, then the&#xa;merged object still has to pass ArticleOutput&#xa;validation like any other." vertex="1">
+          <mxGeometry height="170" width="440" x="760" y="990" as="geometry" />
+        </mxCell>
+
+        <mxCell id="h5" parent="1" style="text;html=1;fontSize=15;fontStyle=1;align=left;" value="5. GET /articles" vertex="1">
+          <mxGeometry height="25" width="300" x="40" y="1250" as="geometry" />
+        </mxCell>
+        <mxCell id="list_in" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=11;spacingLeft=8;spacingTop=6;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="INPUT validation: query params&#xa;&#xa;sender_id: str&#xa;receiver_id: str&#xa;&#xa;Plain FastAPI query-param typing -- no&#xa;dedicated Pydantic request model, nothing to&#xa;validate beyond &quot;is a string&quot;." vertex="1">
+          <mxGeometry height="150" width="320" x="40" y="1280" as="geometry" />
+        </mxCell>
+        <mxCell id="list_out" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=11;spacingLeft=8;spacingTop=6;fillColor=#d5e8d4;strokeColor=#82b366;" value="OUTPUT validation: ArticleListResponse&#xa;&#xa;articles: List[ArticleOutput]&#xa;&#xa;Every item is itself a full ArticleOutput --&#xa;already schema-valid, since nothing enters the&#xa;&quot;articles&quot; table without passing through&#xa;/generate or /revise's own validation first." vertex="1">
+          <mxGeometry height="150" width="440" x="760" y="1280" as="geometry" />
+        </mxCell>
+
+        <mxCell id="h6" parent="1" style="text;html=1;fontSize=15;fontStyle=1;align=left;" value="6. GET /articles/{article_id}/pdf" vertex="1">
+          <mxGeometry height="25" width="500" x="40" y="1450" as="geometry" />
+        </mxCell>
+        <mxCell id="pdf_in" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=11;spacingLeft=8;spacingTop=6;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="INPUT validation: path param&#xa;&#xa;article_id: UUID&#xa;&#xa;FastAPI 422s on a non-UUID path segment&#xa;before the handler runs." vertex="1">
+          <mxGeometry height="150" width="320" x="40" y="1480" as="geometry" />
+        </mxCell>
+        <mxCell id="pdf_out" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontFamily=Courier New;fontSize=11;spacingLeft=8;spacingTop=6;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" value="OUTPUT: raw application/pdf bytes&#xa;&#xa;NOT a Pydantic model -- the one response in&#xa;this whole API with no schema validation at&#xa;all, because it isn't JSON. Correctness here&#xa;relies entirely on build_pdf() reading an&#xa;ArticleOutput that was already validated when&#xa;it was generated or revised (rows 2 and 4)." vertex="1">
+          <mxGeometry height="150" width="440" x="760" y="1480" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sharednote" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fontSize=11;fontStyle=2;spacingLeft=8;spacingTop=6;fillColor=#fff2cc;strokeColor=#d6b656;dashed=1;" value="Shared validation building blocks (app/models.py) -- not endpoint-specific, reused instead of redefined:&#xa;- _HeadlineSubheadlineCtaLimits: headline/subheadline/call_to_action word limits -- base class for BOTH LLMDraft (row 2) and ArticleRevisionRequest (row 4), one definition.&#xa;- BodySection: heading (&lt;=12 words) + text (&lt;=150 words) -- shared by LLMDraft, ArticleRevisionRequest, and ArticleOutput. heading's limit was ADDED 2026-07-31; previously only text&#xa;  had a limit, so a customer's hand-edit via POST /revise could submit an arbitrarily long section heading and it would save with no 422, nothing flagged (fixed in this pass).&#xa;- ThemeColors: 6-digit hex validator -- shared by GenerateRequest (row 2 input) and ArticleOutput (rows 2/4 output).&#xa;- word_count(): one whitespace-split counter backing every word-limit validator above -- a single implementation, not six copies that could quietly drift apart." vertex="1">
+          <mxGeometry height="130" width="1160" x="40" y="1660" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_up1" edge="1" parent="1" source="up_in" target="up_int" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_up2" edge="1" parent="1" source="up_int" target="up_out" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_gen1" edge="1" parent="1" source="gen_in" target="gen_int" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_gen2" edge="1" parent="1" source="gen_int" target="gen_out" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_eval1" edge="1" parent="1" source="eval_in" target="eval_int" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_eval2" edge="1" parent="1" source="eval_int" target="eval_out" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_rev1" edge="1" parent="1" source="rev_in" target="rev_out" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_list1" edge="1" parent="1" source="list_in" target="list_out" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_pdf1" edge="1" parent="1" source="pdf_in" target="pdf_out" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
